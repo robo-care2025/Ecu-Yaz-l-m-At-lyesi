@@ -1,0 +1,89 @@
+import React from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import Image from "next/image";
+
+export default function HomePage() {
+  return (
+    <div className="bg-black text-white min-h-screen font-sans">
+      {/* Navbar */}
+      <header className="p-6 flex justify-between items-center border-b border-gray-800">
+        <div className="flex items-center space-x-4">
+          <Image src="/logo.png" alt="ECU Yazılım Atölyesi Logo" width={40} height={40} />
+          <h1 className="text-2xl font-bold text-orange-500">ECU Yazılım Atölyesi</h1>
+        </div>
+        <nav className="space-x-6">
+          <a href="#" className="hover:text-orange-400">Ana Sayfa</a>
+          <a href="#hakkimizda" className="hover:text-orange-400">Hakkımızda</a>
+          <a href="#hizmetler" className="hover:text-orange-400">Hizmetler</a>
+          <a href="#iletisim" className="hover:text-orange-400">İletişim</a>
+          <a href="#" className="hover:text-orange-400">EN</a>
+        </nav>
+      </header>
+
+      {/* Hero Section */}
+      <section className="px-8 py-24 text-center bg-gradient-to-br from-gray-900 to-black">
+        <h2 className="text-4xl md:text-5xl font-extrabold mb-4">ECU PROGRAMLAMA VE TAMİRİ</h2>
+        <p className="text-lg mb-6 text-gray-300">ECU yazılımı konusunda uzman hizmetler sunuyoruz.</p>
+        <Button className="bg-orange-500 text-white px-6 py-2 rounded-full hover:bg-orange-600">Bize Ulaşın</Button>
+      </section>
+
+      {/* Hakkımızda */}
+      <section id="hakkimizda" className="px-8 py-16 bg-gray-900">
+        <h3 className="text-3xl font-bold mb-4">Hakkımızda</h3>
+        <p className="text-gray-300 max-w-3xl">
+          ECU Yazılım Atölyesi olarak, her türlü motor kontrol ünitesi (ECU) programlama ve onarımı konularında geniş kapsamlı hizmetler sunmaktayız. Deneyimli ekibimizle, araçlarınızın performansını en iyi seviyeye çıkarmak için buradayız.
+        </p>
+      </section>
+
+      {/* Hizmetler */}
+      <section id="hizmetler" className="px-8 py-16 bg-black">
+        <h3 className="text-3xl font-bold mb-8">Hizmetler</h3>
+        <div className="grid md:grid-cols-3 gap-6">
+          <Card>
+            <CardContent className="p-4">
+              <h4 className="text-xl font-semibold mb-2">ECU Yazılım Güncelleme</h4>
+              <p>Optimize edilmiş, güvenilir ve güncel yazılımlarla ECU'nuzu en iyi hale getirin.</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <h4 className="text-xl font-semibold mb-2">Arıza Tespiti ve Onarım</h4>
+              <p>Uzman analiz ve kaliteli onarım hizmeti ile ECU arızalarına çözüm.</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <h4 className="text-xl font-semibold mb-2">Özelleştirilmiş Çözümler</h4>
+              <p>Araçlarınıza özel performans ve çözüm odaklı ECU yazılım hizmetleri.</p>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* İletişim */}
+      <section id="iletisim" className="px-8 py-16 bg-gray-900">
+        <h3 className="text-3xl font-bold mb-8">İletişim</h3>
+        <div className="grid md:grid-cols-2 gap-6">
+          <form className="space-y-4">
+            <Input placeholder="İsim" />
+            <Input type="email" placeholder="E-posta" />
+            <textarea className="w-full p-2 rounded bg-gray-800 text-white" placeholder="Mesaj" rows={5}></textarea>
+            <Button className="bg-orange-500 hover:bg-orange-600">Gönder</Button>
+          </form>
+          <div className="text-gray-300 space-y-2">
+            <p><strong>Adres:</strong> İstanbul, Türkiye</p>
+            <p><strong>Telefon:</strong> +90 555 555 55 55</p>
+            <p><strong>E-posta:</strong> info@ecuyazilimatolyesi.com</p>
+            <p><strong>WhatsApp:</strong> <a className="text-orange-400" href="https://wa.me/905356471111" target="_blank">0535 647 11 11</a></p>
+          </div>
+        </div>
+      </section>
+
+      <footer className="p-4 text-center text-gray-500 text-sm border-t border-gray-800">
+        © 2025 ECU Yazılım Atölyesi. Tüm hakları saklıdır.
+      </footer>
+    </div>
+  );
+}
