@@ -1,49 +1,42 @@
 /**
- * DashboardScreen.tsx — Ana kontrol ekranı.
+ * DashboardScreen.tsx — Ducati PRO-I EVO kontrol + protokol etiketleme ekranı.
  *
- * Orijinal uygulamayı karşılar: bağlan, mod seç (PEDESTRIAN/ECO/COMFORT/SPORT),
- * hız limiti ayarla, far ve kilit. Telemetri (hız/batarya/mod) üstte gösterilir.
+ * Şu an protokolün çözülen kısmını kullanır:
+ *  - Canlı telemetri (durum baytı) gösterir.
+ *  - DOĞRULANMIŞ komutları (replay güvenli) butonla gönderir.
+ *  - Ham hex gönderme kutusu: yeni (cmd,arg) denemelerini etiketlemek için
+ *    (scooter sehpada, tekerlek yerden kesik).
+ *
+ * Mod/hız komutları (cmd,arg) eşleşince KNOWN_COMMANDS'a eklenecek.
  */
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Switch,
   Alert,
 } from 'react-native';
-import Slider from '@react-native-community/slider';
 import { ble } from '../ble/bleManager';
 import { parseTelemetry, Telemetry } from '../ble/telemetry';
-import {
-  buildMode,
-  buildSpeedLimit,
-  buildLight,
-  buildLock,
-} from '../ble/protocol';
-
-type Mode = 'pedestrian' | 'eco' | 'comfort' | 'sport';
-const MODES: Mode[] = ['pedestrian', 'eco', 'comfort', 'sport'];
-const MODE_LABEL: Record<Mode, string> = {
-  pedestrian: 'PEDESTRIAN',
-  eco: 'ECO',
-  comfort: 'COMFORT',
-  sport: 'SPORT',
-};
+import { buildCommand, hexToBytes, validateCommand } from '../ble/protocol';
+import { KNOWN_COMMANDS } from '../config';
 
 export default function DashboardScreen() {
   const [status, setStatus] = useState<'idle' | 'scanning' | 'connecting' | 'connected'>('idle');
   const [telemetry, setTelemetry] = useState<Telemetry | null>(null);
-  const [mode, setMode] = useState<Mode>('eco');
-  const [speedLimit, setSpeedLimit] = useState(25);
-  const [light, setLight] = useState(false);
-  const [locked, setLocked] = useState(false);
+  const [rawHex, setRawHex] = useState('ca ac bd 00 40 fd ba 6a');
+  const [log, setLog] = useState<string[]>([]);
   const foundRef = useRef(false);
 
   useEffect(() => () => void ble.disconnect(), []);
+
+  function addLog(line: string) {
+    setLog((l) => [new Date().toLocaleTimeString() + '  ' + line, ...l].slice(0, 30));
+  }
 
   async function handleConnect() {
     const ok = await ble.requestPermissions();
@@ -64,9 +57,10 @@ export default function DashboardScreen() {
           ble.startTelemetry((bytes) => setTelemetry(parseTelemetry(bytes)));
           ble.onDisconnect(() => {
             setStatus('idle');
-            setTelemetry(null);
+            addLog('bağlantı koptu');
           });
           setStatus('connected');
+          addLog('bağlandı: ' + (device.name || device.id));
         } catch (e: any) {
           Alert.alert('Bağlantı hatası', String(e?.message ?? e));
           setStatus('idle');
@@ -77,7 +71,6 @@ export default function DashboardScreen() {
         setStatus('idle');
       },
     );
-    // 15 sn içinde bulunamazsa durdur
     setTimeout(() => {
       if (!foundRef.current) {
         ble.stopScan();
@@ -87,58 +80,45 @@ export default function DashboardScreen() {
     }, 15000);
   }
 
-  async function send(fn: () => Promise<void>) {
+  async function sendBytes(bytes: Uint8Array, label: string) {
+    if (!ble.isConnected) {
+      Alert.alert('Bağlı değil', "Önce scooter'a bağlan.");
+      return;
+    }
     try {
-      if (!ble.isConnected) {
-        Alert.alert('Bağlı değil', 'Önce scooter\'a bağlan.');
-        return;
-      }
-      await fn();
+      await ble.sendPacket(bytes);
+      addLog('→ ' + label + ' : ' + hex(bytes));
     } catch (e: any) {
       Alert.alert('Gönderim hatası', String(e?.message ?? e));
     }
   }
 
-  const onPickMode = (m: Mode) => {
-    setMode(m);
-    send(() => ble.sendPacket(buildMode(m)));
-  };
-  const onSetSpeed = (v: number) => send(() => ble.sendPacket(buildSpeedLimit(v)));
-  const onToggleLight = (v: boolean) => {
-    setLight(v);
-    send(() => ble.sendPacket(buildLight(v)));
-  };
-  const onToggleLock = (v: boolean) => {
-    setLocked(v);
-    send(() => ble.sendPacket(buildLock(v)));
-  };
+  function sendRaw() {
+    const bytes = hexToBytes(rawHex);
+    const okTxt = bytes.length === 8 ? (validateCommand(bytes) ? ' (checksum ✓)' : ' (checksum ✗)') : '';
+    sendBytes(bytes, 'ham' + okTxt);
+  }
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <Text style={styles.brand}>PRO-I EVO</Text>
-        <Text style={styles.sub}>Urban e-Mobility · özel kontrol</Text>
+        <Text style={styles.sub}>özel kontrol · protokol çözüldü</Text>
       </View>
 
-      {/* Telemetri */}
-      <View style={styles.telemetry}>
-        <Metric label="HIZ" value={telemetry?.speedKmh != null ? `${telemetry.speedKmh}` : '--'} unit="km/h" />
-        <Metric label="BATARYA" value={telemetry?.batteryPct != null ? `${telemetry.batteryPct}` : '--'} unit="%" />
-        <Metric label="MOD" value={telemetry?.mode ? MODE_LABEL[telemetry.mode] : '--'} unit="" />
-      </View>
-      {telemetry?.errorCode ? (
-        <Text style={styles.error}>⚠ Hata kodu: {telemetry.errorCode}</Text>
-      ) : null}
-
-      {/* Bağlan */}
+      {/* Bağlan / durum */}
       {status !== 'connected' ? (
-        <TouchableOpacity style={styles.connectBtn} onPress={handleConnect} disabled={status === 'scanning' || status === 'connecting'}>
+        <TouchableOpacity
+          style={styles.connectBtn}
+          onPress={handleConnect}
+          disabled={status === 'scanning' || status === 'connecting'}
+        >
           {status === 'idle' ? (
             <Text style={styles.connectTxt}>BAĞLAN</Text>
           ) : (
             <View style={styles.row}>
               <ActivityIndicator color="#fff" />
-              <Text style={styles.connectTxt}>  {status === 'scanning' ? 'Taranıyor…' : 'Bağlanıyor…'}</Text>
+              <Text style={styles.connectTxt}> {status === 'scanning' ? 'Taranıyor…' : 'Bağlanıyor…'}</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -146,62 +126,59 @@ export default function DashboardScreen() {
         <Text style={styles.connected}>● Bağlı</Text>
       )}
 
-      {/* Mod seçimi */}
-      <Text style={styles.sectionTitle}>Sürüş Modu</Text>
-      <View style={styles.modeGrid}>
-        {MODES.map((m) => (
+      {/* Telemetri */}
+      <Text style={styles.sectionTitle}>Telemetri (0xFFF7)</Text>
+      <View style={styles.teleBox}>
+        <Text style={styles.teleBig}>{telemetry?.stateHex ?? '--'}</Text>
+        <Text style={styles.teleSmall}>
+          durum · {telemetry?.modeGuess ?? '--'}
+          {telemetry?.flags.length ? ' · ' + telemetry.flags.join(', ') : ''}
+          {telemetry ? (telemetry.checksumOk ? ' · ck ✓' : ' · ck ✗') : ''}
+        </Text>
+        {telemetry?.raw ? <Text style={styles.raw}>{telemetry.raw}</Text> : null}
+      </View>
+
+      {/* Doğrulanmış komutlar */}
+      <Text style={styles.sectionTitle}>Doğrulanmış Komutlar (replay)</Text>
+      <View style={styles.cmdGrid}>
+        {KNOWN_COMMANDS.map((c) => (
           <TouchableOpacity
-            key={m}
-            style={[styles.modeBtn, mode === m && styles.modeBtnActive]}
-            onPress={() => onPickMode(m)}
+            key={c.label}
+            style={styles.cmdBtn}
+            onPress={() => sendBytes(buildCommand(c.cmd, c.arg), c.label)}
           >
-            <Text style={[styles.modeTxt, mode === m && styles.modeTxtActive]}>{MODE_LABEL[m]}</Text>
+            <Text style={styles.cmdTxt}>{c.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* Hız limiti */}
-      <Text style={styles.sectionTitle}>Hız Limiti: {speedLimit} km/h</Text>
-      <Slider
-        style={{ width: '100%', height: 40 }}
-        minimumValue={6}
-        maximumValue={30}
-        step={1}
-        value={speedLimit}
-        onValueChange={setSpeedLimit}
-        onSlidingComplete={onSetSpeed}
-        minimumTrackTintColor="#d32f2f"
-        maximumTrackTintColor="#ccc"
-      />
+      {/* Ham gönderim (etiketleme için) */}
+      <Text style={styles.sectionTitle}>Ham Komut (test / etiketleme)</Text>
       <Text style={styles.hint}>
-        Kaydırıcıyı bırakınca scooter'a yazılır. Yasal sınırları aşma — sorumluluk sana ait.
+        Scooter sehpada, tekerlek yerden kesikken dene. 8 byte girersen checksum kontrol edilir.
       </Text>
+      <TextInput
+        style={styles.input}
+        value={rawHex}
+        onChangeText={setRawHex}
+        autoCapitalize="none"
+        placeholder="ca ac bd 00 40 fd ba 6a"
+      />
+      <TouchableOpacity style={styles.sendBtn} onPress={sendRaw}>
+        <Text style={styles.connectTxt}>GÖNDER</Text>
+      </TouchableOpacity>
 
-      {/* Far & Kilit */}
-      <View style={styles.toggleRow}>
-        <Text style={styles.toggleLabel}>Far</Text>
-        <Switch value={light} onValueChange={onToggleLight} />
-      </View>
-      <View style={styles.toggleRow}>
-        <Text style={styles.toggleLabel}>Kilit</Text>
-        <Switch value={locked} onValueChange={onToggleLock} />
-      </View>
-
-      {telemetry?.raw ? <Text style={styles.raw}>raw: {telemetry.raw}</Text> : null}
+      {/* Log */}
+      <Text style={styles.sectionTitle}>Log</Text>
+      {log.map((l, i) => (
+        <Text key={i} style={styles.logLine}>{l}</Text>
+      ))}
     </ScrollView>
   );
 }
 
-function Metric({ label, value, unit }: { label: string; value: string; unit: string }) {
-  return (
-    <View style={styles.metric}>
-      <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={styles.metricValue}>
-        {value}
-        {unit ? <Text style={styles.metricUnit}> {unit}</Text> : null}
-      </Text>
-    </View>
-  );
+function hex(bytes: Uint8Array): string {
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join(' ');
 }
 
 const styles = StyleSheet.create({
@@ -210,24 +187,20 @@ const styles = StyleSheet.create({
   header: { backgroundColor: '#111', borderRadius: 12, padding: 16, marginBottom: 16 },
   brand: { color: '#fff', fontSize: 28, fontWeight: '900', fontStyle: 'italic' },
   sub: { color: '#bbb', fontSize: 12, marginTop: 2 },
-  telemetry: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  metric: { flex: 1, alignItems: 'center' },
-  metricLabel: { color: '#888', fontSize: 11, letterSpacing: 1 },
-  metricValue: { color: '#111', fontSize: 24, fontWeight: '800', marginTop: 4 },
-  metricUnit: { fontSize: 12, color: '#888', fontWeight: '400' },
-  error: { color: '#d32f2f', fontWeight: '700', textAlign: 'center', marginBottom: 8 },
   connectBtn: { backgroundColor: '#d32f2f', borderRadius: 28, paddingVertical: 14, alignItems: 'center', marginVertical: 8 },
+  sendBtn: { backgroundColor: '#111', borderRadius: 24, paddingVertical: 12, alignItems: 'center', marginTop: 8 },
   connectTxt: { color: '#fff', fontWeight: '800', fontSize: 16 },
   connected: { color: '#2e7d32', fontWeight: '700', textAlign: 'center', marginVertical: 8 },
   row: { flexDirection: 'row', alignItems: 'center' },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: '#333', marginTop: 20, marginBottom: 8 },
-  modeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  modeBtn: { flexGrow: 1, flexBasis: '45%', borderWidth: 1.5, borderColor: '#ddd', borderRadius: 24, paddingVertical: 14, alignItems: 'center' },
-  modeBtnActive: { backgroundColor: '#d32f2f', borderColor: '#d32f2f' },
-  modeTxt: { fontWeight: '800', color: '#555' },
-  modeTxtActive: { color: '#fff' },
-  hint: { color: '#999', fontSize: 11, marginTop: 4 },
-  toggleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  toggleLabel: { fontSize: 15, fontWeight: '600', color: '#333' },
-  raw: { color: '#bbb', fontSize: 10, marginTop: 16, fontFamily: 'monospace' },
+  sectionTitle: { fontSize: 14, fontWeight: '700', color: '#333', marginTop: 22, marginBottom: 8 },
+  teleBox: { backgroundColor: '#f5f5f5', borderRadius: 12, padding: 16, alignItems: 'center' },
+  teleBig: { fontSize: 34, fontWeight: '900', color: '#111' },
+  teleSmall: { fontSize: 12, color: '#666', marginTop: 4 },
+  raw: { color: '#aaa', fontSize: 10, marginTop: 8, fontFamily: 'monospace' },
+  cmdGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  cmdBtn: { flexGrow: 1, flexBasis: '45%', borderWidth: 1.5, borderColor: '#d32f2f', borderRadius: 24, paddingVertical: 14, alignItems: 'center' },
+  cmdTxt: { fontWeight: '700', color: '#d32f2f', fontSize: 12 },
+  hint: { color: '#999', fontSize: 11, marginBottom: 6 },
+  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 12, fontFamily: 'monospace', fontSize: 14 },
+  logLine: { fontSize: 11, color: '#555', fontFamily: 'monospace', paddingVertical: 1 },
 });
