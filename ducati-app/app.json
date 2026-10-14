@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Ducati PRO Kontrol",
+    "slug": "ducati-pro-kontrol",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.ecuatolyesi.ducatipro",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Scooter ile BLE bağlantısı için gereklidir.",
+        "NSBluetoothPeripheralUsageDescription": "Scooter ile BLE bağlantısı için gereklidir."
+      }
+    },
+    "android": {
+      "package": "com.ecuatolyesi.ducatipro",
+      "permissions": [
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "modes": ["central"],
+          "bluetoothAlwaysPermission": "Scooter ile BLE bağlantısı için gereklidir."
+        }
+      ]
+    ]
+  }
+}
