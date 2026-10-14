@@ -5,20 +5,23 @@
  * değerleri buraya gir; uygulamanın geri kalanı bunları kullanır.
  */
 
+// NOT: UUID'ler btsnoop_hci.log analizinden DOĞRULANDI (docs/03-bulgular.md).
+// Servis 0xFFF0, telemetri 0xFFF7, komut 0xFFF6.
 export const BLE_CONFIG = {
   /** scan.py ile bulduğun cihaz adının içinde geçen ifade (reklamdan filtre) */
   deviceNameFilter: 'DUCATI',
 
-  /** enumerate.py: [write] / [write-without-response] olan karakteristik */
-  writeServiceUUID: '0000ffe0-0000-1000-8000-00805f9b34fb', // TODO: gerçek değer
-  writeCharUUID: '0000ffe1-0000-1000-8000-00805f9b34fb', // TODO: gerçek değer
+  /** Komut yazılan karakteristik: 0xFFF6 (read/write/write-no-resp) */
+  writeServiceUUID: '0000fff0-0000-1000-8000-00805f9b34fb',
+  writeCharUUID: '0000fff6-0000-1000-8000-00805f9b34fb',
 
-  /** enumerate.py: [notify] olan karakteristik (telemetri buradan gelir) */
-  notifyServiceUUID: '0000ffe0-0000-1000-8000-00805f9b34fb', // TODO
-  notifyCharUUID: '0000ffe1-0000-1000-8000-00805f9b34fb', // TODO
+  /** Telemetri (notify) karakteristiği: 0xFFF7 */
+  notifyServiceUUID: '0000fff0-0000-1000-8000-00805f9b34fb',
+  notifyCharUUID: '0000fff7-0000-1000-8000-00805f9b34fb',
 
-  /** write-without-response ise true yap (enumerate.py özelliklerine bak) */
-  writeWithoutResponse: false,
+  /** 0xFFF6 hem write hem write-no-resp destekliyor; orijinal uygulama
+   *  Write Command (write-without-response) kullandı. */
+  writeWithoutResponse: true,
 };
 
 /**
@@ -46,9 +49,18 @@ export type ChecksumMethod =
   | 'none';
 
 /**
- * Komut gövdeleri (checksum HARİÇ, header DAHİL ya da protocol.ts'e göre).
- * Yakaladığın paketlerden değişen CMD/ARG byte'larını buraya göre eşle.
- * Aşağıdakiler ÖRNEKTİR — gerçek değerleri HCI snoop'tan çıkar.
+ * ⚠️ DİKKAT — ŞİFRELEME UYARISI (docs/03-bulgular.md):
+ * İlk yakalamada komut kanalına (0xFFF6) yazılan tek paket
+ * `ca ac bd 04 01 b8 79 6a` idi; telemetrinin aksine `5a` başlığı YOK, yani
+ * komutlar büyük olasılıkla ŞİFRELİ. Aşağıdaki header/checksum/COMMANDS
+ * değerleri yalnızca ŞİFRE OLMAYAN protokoller için ÖRNEK şablondur.
+ *
+ * Komutları göndermeden önce ya (a) çok sayıda yakalamayla şemanın sabit
+ * olduğunu doğrula ve byte'ları buraya gir, ya da (b) APK analizinden
+ * çıkan şifreleme fonksiyonunu protocol.ts içine ekle (buildPacket'i
+ * şifreleyecek şekilde değiştir).
+ *
+ * Komut gövdeleri (checksum HARİÇ). Aşağıdakiler ÖRNEKTİR.
  */
 export const COMMANDS = {
   mode: {
