@@ -1,49 +1,77 @@
 /**
  * protocol.ts — Ducati PRO-I EVO komut/telemetri codec'i.
  *
- * btsnoop yakalamalarından ÇÖZÜLDÜ (bkz. ducati-ble/docs/06-protokol-cozuldu.md).
+ * Üç btsnoop yakalamasından ÇÖZÜLDÜ (bkz. ducati-ble/docs/07-tam-cozum.md).
  *
  * KOMUT (telefon -> scooter, char 0xFFF6), 8 byte:
- *   ca ac bd [CMD] [ARG] [CK5] [CK6] 6a
- *     CK5 = (sum(byte[0..4]) + 0x8A) & 0xFF
- *     CK6 = (sum(byte[0..4]) + 0x47) & 0xFF
- *   Komutlar SABİT (oturum anahtarı yok) -> replay güvenli.
+ *   ca ac bd [B3] [B4] [CK5] [CK6] 6a
+ *     CK5 = (B3 XOR B4 XOR 0xBD) & 0xFF
+ *     CK6 = (CK5 + B3 - 0x43) & 0xFF        (mod 256)
+ *   7 farklı komutta doğrulandı. Komutlar SABİT -> replay güvenli.
+ *
+ * Komut bir "mutlak durum yansıması"dır:
+ *   (B3, B4) = mod tabanı + bayraklar (ARG'a OR'lanır).
  */
+import { MODES, FLAGS, ModeId } from '../config';
 
 const HDR = [0xca, 0xac, 0xbd];
 const FTR = 0x6a;
 
-function ck5(body5: number[]): number {
-  return (body5.reduce((a, b) => a + b, 0) + 0x8a) & 0xff;
+function ck5(b3: number, b4: number): number {
+  return (b3 ^ b4 ^ 0xbd) & 0xff;
 }
-function ck6(body5: number[]): number {
-  return (body5.reduce((a, b) => a + b, 0) + 0x47) & 0xff;
-}
-
-/** cmd + arg -> tam 8 byte komut paketi */
-export function buildCommand(cmd: number, arg: number): Uint8Array {
-  const body = [...HDR, cmd & 0xff, arg & 0xff];
-  return Uint8Array.from([...body, ck5(body), ck6(body), FTR]);
+function ck6(b3: number, b4: number): number {
+  return (ck5(b3, b4) + b3 - 0x43) & 0xff;
 }
 
-/** Ham hex (örn "ca ac bd 00 40 fd ba 6a") -> byte dizisi (replay/test için) */
+/** (b3,b4) -> tam 8 byte komut paketi */
+export function buildCommand(b3: number, b4: number): Uint8Array {
+  b3 &= 0xff;
+  b4 &= 0xff;
+  return Uint8Array.from([...HDR, b3, b4, ck5(b3, b4), ck6(b3, b4), FTR]);
+}
+
+/** Mod seç (hız limiti): ECO(1) en yavaş, SPORT(3) en hızlı. Bayraklar kapalı. */
+export function buildMode(mode: ModeId): Uint8Array {
+  const m = MODES[mode];
+  return buildCommand(m.b3, m.b4);
+}
+
+/**
+ * Mod + bayrak durumunu birlikte gönder (komut mutlak durum olduğu için
+ * aktif bayraklar ARG'a eklenir). Örn: mod3 + kilit.
+ */
+export function buildState(
+  mode: ModeId,
+  flags: { cruise?: boolean; far?: boolean; lock?: boolean } = {},
+): Uint8Array {
+  const m = MODES[mode];
+  let b4 = m.b4;
+  if (flags.cruise) b4 |= FLAGS.cruise;
+  if (flags.far) b4 |= FLAGS.far;
+  if (flags.lock) b4 |= FLAGS.lock;
+  return buildCommand(m.b3, b4);
+}
+
+/** Ham hex (örn "ca ac bd 04 01 b8 79 6a") -> byte dizisi */
 export function hexToBytes(hex: string): Uint8Array {
   const clean = hex.replace(/0x/g, '').replace(/[,\s]+/g, ' ').trim();
   const parts = clean.includes(' ') ? clean.split(' ') : clean.match(/.{1,2}/g) || [];
   return Uint8Array.from(parts.map((p) => parseInt(p, 16)));
 }
 
-/** Paketi doğrula (checksum/çerçeve tutuyor mu) */
+/** Paketi doğrula (çerçeve + checksum) */
 export function validateCommand(pkt: Uint8Array): boolean {
   if (pkt.length !== 8) return false;
-  const body = Array.from(pkt.slice(0, 5));
+  const b3 = pkt[3];
+  const b4 = pkt[4];
   return (
     pkt[0] === HDR[0] &&
     pkt[1] === HDR[1] &&
     pkt[2] === HDR[2] &&
     pkt[7] === FTR &&
-    pkt[5] === ck5(body) &&
-    pkt[6] === ck6(body)
+    pkt[5] === ck5(b3, b4) &&
+    pkt[6] === ck6(b3, b4)
   );
 }
 

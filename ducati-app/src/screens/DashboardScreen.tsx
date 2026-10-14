@@ -1,13 +1,11 @@
 /**
- * DashboardScreen.tsx — Ducati PRO-I EVO kontrol + protokol etiketleme ekranı.
+ * DashboardScreen.tsx — Ducati PRO-I EVO kontrol ekranı.
  *
- * Şu an protokolün çözülen kısmını kullanır:
- *  - Canlı telemetri (durum baytı) gösterir.
- *  - DOĞRULANMIŞ komutları (replay güvenli) butonla gönderir.
- *  - Ham hex gönderme kutusu: yeni (cmd,arg) denemelerini etiketlemek için
- *    (scooter sehpada, tekerlek yerden kesik).
+ * Çözülen protokolle: mod (= hız limiti) seçimi, kilit, far, cruise,
+ * canlı telemetri (mod/hız/kilit/far). Ayrıca ham komut test kutusu.
  *
- * Mod/hız komutları (cmd,arg) eşleşince KNOWN_COMMANDS'a eklenecek.
+ * Komutlar mutlak durum yansıması olduğundan bayraklar (far/kilit/cruise)
+ * seçili moda OR'lanarak gönderilir.
  */
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -22,13 +20,19 @@ import {
 } from 'react-native';
 import { ble } from '../ble/bleManager';
 import { parseTelemetry, modeLabel, Telemetry } from '../ble/telemetry';
-import { buildCommand, hexToBytes, validateCommand } from '../ble/protocol';
-import { KNOWN_COMMANDS } from '../config';
+import { buildMode, buildState, hexToBytes, validateCommand } from '../ble/protocol';
+import { MODES, ModeId } from '../config';
+
+const MODE_IDS: ModeId[] = [1, 2, 3];
 
 export default function DashboardScreen() {
   const [status, setStatus] = useState<'idle' | 'scanning' | 'connecting' | 'connected'>('idle');
-  const [telemetry, setTelemetry] = useState<Telemetry | null>(null);
-  const [rawHex, setRawHex] = useState('ca ac bd 00 40 fd ba 6a');
+  const [tele, setTele] = useState<Telemetry | null>(null);
+  const [mode, setMode] = useState<ModeId>(1);
+  const [lock, setLock] = useState(false);
+  const [far, setFar] = useState(false);
+  const [cruise, setCruise] = useState(false);
+  const [rawHex, setRawHex] = useState('ca ac bd 04 01 b8 79 6a');
   const [log, setLog] = useState<string[]>([]);
   const foundRef = useRef(false);
 
@@ -54,7 +58,14 @@ export default function DashboardScreen() {
         setStatus('connecting');
         try {
           await ble.connect(device.id);
-          ble.startTelemetry((bytes) => setTelemetry(parseTelemetry(bytes)));
+          ble.startTelemetry((bytes) => {
+            const t = parseTelemetry(bytes);
+            setTele(t);
+            if (t.mode && (t.mode === 1 || t.mode === 2 || t.mode === 3)) setMode(t.mode as ModeId);
+            setLock(t.locked);
+            setFar(t.headlightOn);
+            setCruise(t.cruiseOn);
+          });
           ble.onDisconnect(() => {
             setStatus('idle');
             addLog('bağlantı koptu');
@@ -80,7 +91,7 @@ export default function DashboardScreen() {
     }, 15000);
   }
 
-  async function sendBytes(bytes: Uint8Array, label: string) {
+  async function send(bytes: Uint8Array, label: string) {
     if (!ble.isConnected) {
       Alert.alert('Bağlı değil', "Önce scooter'a bağlan.");
       return;
@@ -93,10 +104,23 @@ export default function DashboardScreen() {
     }
   }
 
+  // Mod seç (hız limiti). Aktif bayraklarla birlikte gönderilir.
+  function pickMode(m: ModeId) {
+    setMode(m);
+    send(buildState(m, { lock, far, cruise }), 'MOD ' + MODES[m].label);
+  }
+  function toggle(kind: 'lock' | 'far' | 'cruise', val: boolean) {
+    const next = { lock, far, cruise, [kind]: val };
+    if (kind === 'lock') setLock(val);
+    if (kind === 'far') setFar(val);
+    if (kind === 'cruise') setCruise(val);
+    send(buildState(mode, next), kind + (val ? ' açık' : ' kapalı'));
+  }
+
   function sendRaw() {
     const bytes = hexToBytes(rawHex);
-    const okTxt = bytes.length === 8 ? (validateCommand(bytes) ? ' (checksum ✓)' : ' (checksum ✗)') : '';
-    sendBytes(bytes, 'ham' + okTxt);
+    const ok = bytes.length === 8 ? (validateCommand(bytes) ? ' (ck✓)' : ' (ck✗)') : '';
+    send(bytes, 'ham' + ok);
   }
 
   return (
@@ -127,41 +151,47 @@ export default function DashboardScreen() {
       )}
 
       {/* Telemetri */}
-      <Text style={styles.sectionTitle}>Telemetri (0xFFF7)</Text>
       <View style={styles.teleBox}>
         <View style={styles.teleRow}>
-          <Metric label="MOD" value={modeLabel(telemetry?.mode ?? null)} />
-          <Metric label="FAR" value={telemetry ? (telemetry.headlightOn ? 'AÇIK' : 'kapalı') : '--'} />
-          <Metric label="KİLİT" value={telemetry ? (telemetry.locked ? 'KİLİTLİ 🔒' : 'açık 🔓') : '--'} />
+          <Metric label="HIZ" value={tele?.speedKmh != null ? String(tele.speedKmh) : '--'} unit="km/h*" />
+          <Metric label="MOD" value={modeLabel(tele?.mode ?? null)} />
+          <Metric label="KİLİT" value={tele ? (tele.locked ? '🔒' : '🔓') : '--'} />
         </View>
-        {telemetry?.raw ? <Text style={styles.raw}>{telemetry.raw}{telemetry.checksumOk ? '  ck✓' : '  ck✗'}</Text> : null}
+        <Text style={styles.calib}>*hız ölçeği kalibre edilmeli (telemetry.ts SPEED_SCALE)</Text>
+        {tele?.raw ? <Text style={styles.raw}>{tele.raw}</Text> : null}
       </View>
 
-      {/* Doğrulanmış komutlar */}
-      <Text style={styles.sectionTitle}>Doğrulanmış Komutlar (replay)</Text>
-      <View style={styles.cmdGrid}>
-        {KNOWN_COMMANDS.map((c) => (
+      {/* Mod = hız limiti */}
+      <Text style={styles.sectionTitle}>Sürüş Modu (hız limiti)</Text>
+      <View style={styles.modeRow}>
+        {MODE_IDS.map((m) => (
           <TouchableOpacity
-            key={c.label}
-            style={styles.cmdBtn}
-            onPress={() => sendBytes(buildCommand(c.cmd, c.arg), c.label)}
+            key={m}
+            style={[styles.modeBtn, mode === m && styles.modeBtnActive]}
+            onPress={() => pickMode(m)}
           >
-            <Text style={styles.cmdTxt}>{c.label}</Text>
+            <Text style={[styles.modeTxt, mode === m && styles.modeTxtActive]}>{MODES[m].label}</Text>
           </TouchableOpacity>
         ))}
       </View>
+      <Text style={styles.hint}>ECO en düşük hız limiti · SPORT en yüksek. Yasal sınırı aşma — sorumluluk sende.</Text>
 
-      {/* Ham gönderim (etiketleme için) */}
-      <Text style={styles.sectionTitle}>Ham Komut (test / etiketleme)</Text>
-      <Text style={styles.hint}>
-        Scooter sehpada, tekerlek yerden kesikken dene. 8 byte girersen checksum kontrol edilir.
-      </Text>
+      {/* Bayraklar */}
+      <Text style={styles.sectionTitle}>Kontroller</Text>
+      <View style={styles.toggleRow}>
+        <Toggle label="🔒 Kilit" on={lock} onPress={() => toggle('lock', !lock)} />
+        <Toggle label="💡 Far" on={far} onPress={() => toggle('far', !far)} />
+        <Toggle label="🛞 Cruise" on={cruise} onPress={() => toggle('cruise', !cruise)} />
+      </View>
+
+      {/* Ham gönderim */}
+      <Text style={styles.sectionTitle}>Ham Komut (test)</Text>
       <TextInput
         style={styles.input}
         value={rawHex}
         onChangeText={setRawHex}
         autoCapitalize="none"
-        placeholder="ca ac bd 00 40 fd ba 6a"
+        placeholder="ca ac bd 04 01 b8 79 6a"
       />
       <TouchableOpacity style={styles.sendBtn} onPress={sendRaw}>
         <Text style={styles.connectTxt}>GÖNDER</Text>
@@ -176,12 +206,24 @@ export default function DashboardScreen() {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value, unit }: { label: string; value: string; unit?: string }) {
   return (
     <View style={styles.metric}>
       <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={styles.metricValue}>{value}</Text>
+      <Text style={styles.metricValue}>
+        {value}
+        {unit ? <Text style={styles.metricUnit}> {unit}</Text> : null}
+      </Text>
     </View>
+  );
+}
+
+function Toggle({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+  return (
+    <TouchableOpacity style={[styles.toggleBtn, on && styles.toggleOn]} onPress={onPress}>
+      <Text style={[styles.toggleTxt, on && styles.toggleTxtOn]}>{label}</Text>
+      <Text style={[styles.toggleState, on && styles.toggleTxtOn]}>{on ? 'AÇIK' : 'kapalı'}</Text>
+    </TouchableOpacity>
   );
 }
 
@@ -205,12 +247,22 @@ const styles = StyleSheet.create({
   teleRow: { flexDirection: 'row', justifyContent: 'space-between' },
   metric: { flex: 1, alignItems: 'center' },
   metricLabel: { color: '#888', fontSize: 11, letterSpacing: 1 },
-  metricValue: { color: '#111', fontSize: 16, fontWeight: '800', marginTop: 4 },
-  raw: { color: '#aaa', fontSize: 10, marginTop: 10, fontFamily: 'monospace', textAlign: 'center' },
-  cmdGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  cmdBtn: { flexGrow: 1, flexBasis: '45%', borderWidth: 1.5, borderColor: '#d32f2f', borderRadius: 24, paddingVertical: 14, alignItems: 'center' },
-  cmdTxt: { fontWeight: '700', color: '#d32f2f', fontSize: 12 },
-  hint: { color: '#999', fontSize: 11, marginBottom: 6 },
+  metricValue: { color: '#111', fontSize: 20, fontWeight: '800', marginTop: 4 },
+  metricUnit: { fontSize: 11, color: '#888', fontWeight: '400' },
+  calib: { color: '#bbb', fontSize: 9, textAlign: 'center', marginTop: 6 },
+  raw: { color: '#aaa', fontSize: 10, marginTop: 6, fontFamily: 'monospace', textAlign: 'center' },
+  modeRow: { flexDirection: 'row', gap: 10 },
+  modeBtn: { flex: 1, borderWidth: 1.5, borderColor: '#ddd', borderRadius: 24, paddingVertical: 16, alignItems: 'center' },
+  modeBtnActive: { backgroundColor: '#d32f2f', borderColor: '#d32f2f' },
+  modeTxt: { fontWeight: '800', color: '#555', fontSize: 13 },
+  modeTxtActive: { color: '#fff' },
+  hint: { color: '#999', fontSize: 11, marginTop: 6 },
+  toggleRow: { flexDirection: 'row', gap: 10 },
+  toggleBtn: { flex: 1, borderWidth: 1.5, borderColor: '#ddd', borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  toggleOn: { backgroundColor: '#111', borderColor: '#111' },
+  toggleTxt: { fontWeight: '700', color: '#555', fontSize: 13 },
+  toggleTxtOn: { color: '#fff' },
+  toggleState: { fontSize: 10, color: '#999', marginTop: 2 },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 12, fontFamily: 'monospace', fontSize: 14 },
   logLine: { fontSize: 11, color: '#555', fontFamily: 'monospace', paddingVertical: 1 },
 });

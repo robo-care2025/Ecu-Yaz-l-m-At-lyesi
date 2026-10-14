@@ -3,11 +3,15 @@
 ducati_codec.py — Ducati PRO-I EVO komut/telemetri codec'i (btsnoop'tan çözüldü).
 
 KOMUT (telefon -> scooter, char 0xFFF6):
-    ca ac bd [CMD] [ARG] [CK5] [CK6] 6a      (8 byte)
-      CK5 = (sum(byte[0..4]) + 0x8A) & 0xFF
-      CK6 = (sum(byte[0..4]) + 0x47) & 0xFF
-    Doğrulandı: cmd=0x00 arg=0x40/0x00 örnekleri birebir üretiliyor.
-    NOT: Komutlar SABİT (oturum anahtarı yok) -> replay çalışır.
+    ca ac bd [B3] [B4] [CK5] [CK6] 6a      (8 byte)
+      CK5 = (B3 XOR B4 XOR 0xBD) & 0xFF
+      CK6 = (CK5 + B3 - 0x43) & 0xFF
+    7 farklı komutta doğrulandı. Komutlar SABİT (oturum anahtarı yok) -> replay.
+    Komut mutlak durum yansıması: (B3,B4) = mod tabanı + bayraklar (ARG'a OR).
+      MOD1 ECO  : ca ac bd 00 00 bd 7a 6a
+      MOD2      : ca ac bd 00 01 bc 79 6a
+      MOD3 SPORT: ca ac bd 04 01 b8 79 6a
+      bayraklar : cruise ARG|0x02, far ARG|0x18, kilit ARG|0x40
 
 TELEMETRİ (scooter -> telefon, char 0xFFF7):
     5a b9 00 00 24 00 00 00 64 [STATE] 00 20 00 00 [CK] 95   (16 byte)
@@ -25,24 +29,23 @@ HDR = [0xCA, 0xAC, 0xBD]
 FTR = 0x6A
 
 
-def ck5(body5): return (sum(body5) + 0x8A) & 0xFF
-def ck6(body5): return (sum(body5) + 0x47) & 0xFF
+def ck5(b3, b4): return (b3 ^ b4 ^ 0xBD) & 0xFF
+def ck6(b3, b4): return (ck5(b3, b4) + b3 - 0x43) & 0xFF
 
 
-def encode(cmd: int, arg: int) -> bytes:
-    body = HDR + [cmd & 0xFF, arg & 0xFF]
-    return bytes(body + [ck5(body), ck6(body), FTR])
+def encode(b3: int, b4: int) -> bytes:
+    return bytes(HDR + [b3 & 0xFF, b4 & 0xFF, ck5(b3, b4), ck6(b3, b4), FTR])
 
 
 def decode(pkt: bytes) -> dict:
     if len(pkt) != 8:
         return {"ok": False, "neden": f"uzunluk {len(pkt)} (8 bekleniyor)"}
-    body = list(pkt[0:5])
-    exp5, exp6 = ck5(body), ck6(body)
+    b3, b4 = pkt[3], pkt[4]
+    exp5, exp6 = ck5(b3, b4), ck6(b3, b4)
     return {
         "ok": pkt[0:3] == bytes(HDR) and pkt[7] == FTR and pkt[5] == exp5 and pkt[6] == exp6,
-        "cmd": pkt[3],
-        "arg": pkt[4],
+        "b3": pkt[3],
+        "b4": pkt[4],
         "ck5_ok": pkt[5] == exp5,
         "ck6_ok": pkt[6] == exp6,
         "header_ok": pkt[0:3] == bytes(HDR),
