@@ -21,7 +21,7 @@ import {
   Alert,
 } from 'react-native';
 import { ble } from '../ble/bleManager';
-import { parseTelemetry, Telemetry } from '../ble/telemetry';
+import { parseTelemetry, modeLabel, Telemetry } from '../ble/telemetry';
 import { buildCommand, hexToBytes, validateCommand } from '../ble/protocol';
 import { KNOWN_COMMANDS } from '../config';
 
@@ -129,13 +129,12 @@ export default function DashboardScreen() {
       {/* Telemetri */}
       <Text style={styles.sectionTitle}>Telemetri (0xFFF7)</Text>
       <View style={styles.teleBox}>
-        <Text style={styles.teleBig}>{telemetry?.stateHex ?? '--'}</Text>
-        <Text style={styles.teleSmall}>
-          durum · {telemetry?.modeGuess ?? '--'}
-          {telemetry?.flags.length ? ' · ' + telemetry.flags.join(', ') : ''}
-          {telemetry ? (telemetry.checksumOk ? ' · ck ✓' : ' · ck ✗') : ''}
-        </Text>
-        {telemetry?.raw ? <Text style={styles.raw}>{telemetry.raw}</Text> : null}
+        <View style={styles.teleRow}>
+          <Metric label="MOD" value={modeLabel(telemetry?.mode ?? null)} />
+          <Metric label="FAR" value={telemetry ? (telemetry.headlightOn ? 'AÇIK' : 'kapalı') : '--'} />
+          <Metric label="KİLİT" value={telemetry ? (telemetry.locked ? 'KİLİTLİ 🔒' : 'açık 🔓') : '--'} />
+        </View>
+        {telemetry?.raw ? <Text style={styles.raw}>{telemetry.raw}{telemetry.checksumOk ? '  ck✓' : '  ck✗'}</Text> : null}
       </View>
 
       {/* Doğrulanmış komutlar */}
@@ -177,6 +176,15 @@ export default function DashboardScreen() {
   );
 }
 
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.metric}>
+      <Text style={styles.metricLabel}>{label}</Text>
+      <Text style={styles.metricValue}>{value}</Text>
+    </View>
+  );
+}
+
 function hex(bytes: Uint8Array): string {
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join(' ');
 }
@@ -193,10 +201,12 @@ const styles = StyleSheet.create({
   connected: { color: '#2e7d32', fontWeight: '700', textAlign: 'center', marginVertical: 8 },
   row: { flexDirection: 'row', alignItems: 'center' },
   sectionTitle: { fontSize: 14, fontWeight: '700', color: '#333', marginTop: 22, marginBottom: 8 },
-  teleBox: { backgroundColor: '#f5f5f5', borderRadius: 12, padding: 16, alignItems: 'center' },
-  teleBig: { fontSize: 34, fontWeight: '900', color: '#111' },
-  teleSmall: { fontSize: 12, color: '#666', marginTop: 4 },
-  raw: { color: '#aaa', fontSize: 10, marginTop: 8, fontFamily: 'monospace' },
+  teleBox: { backgroundColor: '#f5f5f5', borderRadius: 12, padding: 16 },
+  teleRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  metric: { flex: 1, alignItems: 'center' },
+  metricLabel: { color: '#888', fontSize: 11, letterSpacing: 1 },
+  metricValue: { color: '#111', fontSize: 16, fontWeight: '800', marginTop: 4 },
+  raw: { color: '#aaa', fontSize: 10, marginTop: 10, fontFamily: 'monospace', textAlign: 'center' },
   cmdGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   cmdBtn: { flexGrow: 1, flexBasis: '45%', borderWidth: 1.5, borderColor: '#d32f2f', borderRadius: 24, paddingVertical: 14, alignItems: 'center' },
   cmdTxt: { fontWeight: '700', color: '#d32f2f', fontSize: 12 },

@@ -24,10 +24,18 @@ ca ac bd [CMD] [ARG] [CK5] [CK6] 6a
 ```
 İki örnek de birebir üretildi (bkz. `tools/ducati_codec.py`).
 
-### Henüz bilinen tek komut ailesi
-- `CMD=0x00`, `ARG=0x40` → bir fonksiyon **AÇIK**
-- `CMD=0x00`, `ARG=0x00` → aynı fonksiyon **KAPALI**
-- Fonksiyonun adı (far? kilit? cruise?) henüz etiketlenmedi.
+### Doğrulanan komut (etiketli yakalama ile kesinleşti)
+- `ca ac bd 00 40 fd ba 6a` (CMD=0x00, ARG=0x40) → **KİLİTLE** 🔒
+- `ca ac bd 00 00 bd 7a 6a` (CMD=0x00, ARG=0x00) → **KİLİT AÇ** 🔓
+
+Zaman çizelgesi kullanıcının sırasıyla birebir eşleşti:
+- t=1–60s: 3× mod değişimi → STATE 1→2→3 (üç tur), **BLE yazması YOK**
+- t=65–75s: 3× far aç/kapat → STATE bit 0x10 → **BLE yazması YOK**
+- t=78–89s: uygulamadan kilit/aç → 4 yazma (0x40/0x00) + STATE bit 0x80
+
+**Önemli:** Mod ve far değişimi BLE yazması üretmedi → scooter üzerinden fiziksel
+yapıldı; uygulama bunları sadece okuyor. Uygulamanın EKRAN mod butonlarına basınca
+(ECO/COMFORT/SPORT) yazma üretip üretmediği ayrı bir yakalamayla görülecek.
 
 ## 3. Telemetri çerçevesi (scooter → telefon, char 0xFFF7, 16 byte)
 ```
@@ -35,9 +43,10 @@ ca ac bd [CMD] [ARG] [CK5] [CK6] 6a
                             │                   └ CK = (STATE + 0x60) & 0xFF
                             └───────────────────── STATE: durum/mod baytı
 ```
-Yakalamada görülen STATE: `01, 02, 03, 13, 81`.
-- Alt nibble (0x0_) muhtemelen mod: 1/2/3.
-- Üst bitler (0x10, 0x80) bayrak gibi (far/kilit?).
+STATE baytı ÇÖZÜLDÜ (etiketli yakalama ile doğrulandı):
+- alt nibble (0x0F) = **sürüş modu** (1/2/3)
+- bit **0x10** = **FAR açık**
+- bit **0x80** = **KİLİTLİ**
 
 ## 4. Hâlâ eksik olan: aksiyon ↔ (CMD,ARG) etiketleri
 Bu yakalamada:

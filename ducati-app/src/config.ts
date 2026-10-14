@@ -19,25 +19,29 @@ export const BLE_CONFIG = {
 };
 
 /**
- * DOĞRULANMIŞ komutlar (replay güvenli — birebir yakalanmış paketler).
- * cmd=0x00 ile bir fonksiyon açılıp kapanıyor (arg 0x40=açık, 0x00=kapalı).
- * Bu fonksiyonun ADI henüz etiketlenmedi (kilit mi? far mı? cruise mı?) —
- * replay testiyle (scooter sehpada) belirlenecek.
+ * DOĞRULANMIŞ komutlar (etiketli yakalama ile kesinleşti, replay güvenli).
+ * cmd=0x00: KİLİT fonksiyonu. arg 0x40 = kilitle, 0x00 = kilit aç.
+ * Telemetride STATE bit 0x80 kilit durumunu yansıtır.
  */
+export const COMMANDS = {
+  lock: { cmd: 0x00, arg: 0x40 }, // ca ac bd 00 40 fd ba 6a
+  unlock: { cmd: 0x00, arg: 0x00 }, // ca ac bd 00 00 bd 7a 6a
+};
+
 export const KNOWN_COMMANDS: { label: string; cmd: number; arg: number }[] = [
-  { label: 'cmd00 arg40 (açık?)', cmd: 0x00, arg: 0x40 },
-  { label: 'cmd00 arg00 (kapalı?)', cmd: 0x00, arg: 0x00 },
+  { label: 'KİLİTLE 🔒', cmd: COMMANDS.lock.cmd, arg: COMMANDS.lock.arg },
+  { label: 'KİLİT AÇ 🔓', cmd: COMMANDS.unlock.cmd, arg: COMMANDS.unlock.arg },
 ];
 
 /**
- * HENÜZ EŞLEŞMEMİŞ aksiyonlar.
- * Mod (ECO/COMFORT/SPORT) ve hız limiti komutları bu yakalamada BLE yazması
- * olarak GÖRÜNMEDİ — ya scooter üzerinden fiziksel değişiyor ya da ayrı bir
- * komutla. Her aksiyonu tek tek yapan etiketli bir yakalama ile (cmd,arg)
- * çiftleri buraya eklenecek.
- *
- * Örn (çözülünce):
- *   eco:   { cmd: 0x??, arg: 0x?? },
- *   sport: { cmd: 0x??, arg: 0x?? },
- *   speedLimit: (kmh) => ({ cmd: 0x??, arg: kmh }),
+ * HENÜZ EŞLEŞMEMİŞ aksiyonlar — HIZ LİMİTİ dahil.
+ * Son yakalamada mod (ECO/COMFORT/SPORT) ve far değişimi BLE yazması ÜRETMEDİ;
+ * bunlar scooter üzerinden fiziksel yapıldı (uygulama sadece okuyor).
+ * Hız limiti / mod komutlarını yakalamak için: uygulamanın EKRAN butonlarına
+ * (ECO/COMFORT/SPORT) ve CRUISE/UNIT ayarlarına bas, yeni btsnoop al.
+ * Çözülen (cmd,arg) çiftleri buraya eklenecek:
+ *   eco:        { cmd: 0x??, arg: 0x?? },
+ *   comfort:    { cmd: 0x??, arg: 0x?? },
+ *   sport:      { cmd: 0x??, arg: 0x?? },
+ *   speedLimit: (kmh: number) => ({ cmd: 0x??, arg: kmh }),
  */
