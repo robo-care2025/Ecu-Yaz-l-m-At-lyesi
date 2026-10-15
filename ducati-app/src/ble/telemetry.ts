@@ -25,6 +25,9 @@
 /** 16-bit hız -> km/h böleni (idx2+idx3*256)/10. Ölçümle kalibre edildi. */
 export const SPEED_SCALE = 10;
 
+/** Trip sayacı (idx12+idx13) -> km çarpanı. TAHMİN — scooter ile kalibre edilecek. */
+export const TRIP_SCALE = 0.01;
+
 export interface Telemetry {
   state: number | null;
   stateHex: string;
@@ -38,6 +41,10 @@ export interface Telemetry {
   speedRaw: number | null;
   speedKmh: number | null;
   moving: boolean;
+  tripRaw: number | null;
+  tripKm: number | null;
+  fault: boolean;
+  faultCode: number;
   raw: string;
 }
 
@@ -63,9 +70,15 @@ export function parseTelemetry(bytes: Uint8Array): Telemetry {
       speedRaw: null,
       speedKmh: null,
       moving: false,
+      tripRaw: null,
+      tripKm: null,
+      fault: false,
+      faultCode: 0,
       raw: hex(bytes),
     };
   }
+  const faultCode = bytes[5] || bytes[7] || bytes[10];
+  const tripRaw = bytes[12] | (bytes[13] << 8);
   const state = bytes[9];
   const ck = bytes[14];
   const speedRaw = bytes[2] | (bytes[3] << 8);
@@ -82,6 +95,10 @@ export function parseTelemetry(bytes: Uint8Array): Telemetry {
     speedRaw,
     speedKmh: +(speedRaw / SPEED_SCALE).toFixed(1),
     moving: (bytes[11] & 0x08) !== 0,
+    tripRaw,
+    tripKm: +(tripRaw * TRIP_SCALE).toFixed(2),
+    fault: faultCode !== 0,
+    faultCode,
     raw: hex(bytes),
   };
 }

@@ -171,6 +171,23 @@ export default function DashboardScreen() {
           </View>
         </View>
 
+        {/* Trip + Durum */}
+        <View style={styles.infoRow}>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoLabel}>TRIP</Text>
+            <Text style={styles.infoValue}>
+              {tele?.tripKm != null ? tele.tripKm.toFixed(2) : '--'}
+              <Text style={styles.infoUnit}> km*</Text>
+            </Text>
+          </View>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoLabel}>DURUM</Text>
+            <Text style={[styles.infoHealth, { color: tele?.fault ? RED : '#27C26E' }]}>
+              {tele == null ? '—' : tele.fault ? `⚠ Arıza 0x${tele.faultCode.toString(16)}` : '✓ Sorun yok'}
+            </Text>
+          </View>
+        </View>
+
         {/* Bağlan */}
         {!connected && (
           <TouchableOpacity
@@ -326,6 +343,12 @@ const styles = StyleSheet.create({
   badge: { alignItems: 'center' },
   badgeIcon: { fontSize: 18 },
   badgeLabel: { fontSize: 10, fontWeight: '800', marginTop: 3, letterSpacing: 1 },
+  infoRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+  infoCard: { flex: 1, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 },
+  infoLabel: { color: MUTED, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
+  infoValue: { color: '#fff', fontSize: 20, fontWeight: '900', marginTop: 4 },
+  infoUnit: { color: MUTED, fontSize: 11, fontWeight: '600' },
+  infoHealth: { fontSize: 14, fontWeight: '800', marginTop: 7 },
   connectBtn: { backgroundColor: RED, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 14 },
   connectTxt: { color: '#fff', fontWeight: '900', fontSize: 16, letterSpacing: 1 },
   row: { flexDirection: 'row', alignItems: 'center' },
