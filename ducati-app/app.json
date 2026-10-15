@@ -22,20 +22,12 @@
       ]
     },
     "plugins": [
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#ffffff"
-        }
-      ],
-      [
-        "react-native-ble-plx",
-        {
-          "isBackgroundEnabled": false,
-          "modes": ["central"],
-          "bluetoothAlwaysPermission": "Scooter ile BLE bağlantısı için gereklidir."
-        }
-      ]
+      ["expo-splash-screen", { "backgroundColor": "#ffffff" }],
+      ["react-native-ble-plx", {
+        "isBackgroundEnabled": false,
+        "modes": ["central"],
+        "bluetoothAlwaysPermission": "Scooter ile BLE bağlantısı için gereklidir."
+      }]
     ]
   }
 }
