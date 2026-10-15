@@ -15,12 +15,12 @@
  *   bit 0x10          = FAR açık
  *   bit 0x80          = KİLİTLİ
  *
- * HIZ: idx2 tek baytı, km/h = idx2 / 10 (20 km/h'de idx2=200 ölçümüyle kalibre).
- *      idx12 hıza DAHİL DEĞİL (kilometre sayacı). Tek bayt olduğundan
- *      gösterge ~25.5 km/h'ye kadar doğru; üstünde yüksek bayt gerekebilir.
+ * HIZ: 16-bit = idx2 + idx3*256, km/h = deger / 10.
+ *      20 km/h -> idx2=200,idx3=0 (=200); 30 km/h -> idx2=0x2c,idx3=1 (=300).
+ *      idx12 hıza DAHİL DEĞİL (kilometre sayacı).
  */
 
-/** idx2 -> km/h böleni. 20 km/h'de idx2=200 ölçümüyle kalibre edildi. */
+/** 16-bit hız -> km/h böleni (idx2+idx3*256)/10. Ölçümle kalibre edildi. */
 export const SPEED_SCALE = 10;
 
 export interface Telemetry {
@@ -62,7 +62,7 @@ export function parseTelemetry(bytes: Uint8Array): Telemetry {
   }
   const state = bytes[9];
   const ck = bytes[14];
-  const speedRaw = bytes[2];
+  const speedRaw = bytes[2] | (bytes[3] << 8);
   return {
     state,
     stateHex: `0x${state.toString(16).padStart(2, '0')}`,
