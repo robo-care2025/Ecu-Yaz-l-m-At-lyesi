@@ -1,10 +1,11 @@
 {
   "expo": {
-    "name": "Ducati PRO Kontrol",
+    "name": "Ducati E-Mobility",
     "slug": "ducati-pro-kontrol",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
+    "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.ecuatolyesi.ducatipro",
@@ -15,6 +16,10 @@
     },
     "android": {
       "package": "com.ecuatolyesi.ducatipro",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#E2001A"
+      },
       "permissions": [
         "android.permission.BLUETOOTH_SCAN",
         "android.permission.BLUETOOTH_CONNECT",
