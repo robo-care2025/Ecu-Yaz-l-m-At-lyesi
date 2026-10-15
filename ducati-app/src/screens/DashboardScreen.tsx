@@ -32,6 +32,7 @@ export default function DashboardScreen() {
   const [lock, setLock] = useState(false);
   const [far, setFar] = useState(false);
   const [cruise, setCruise] = useState(false);
+  const [zeroStart, setZeroStart] = useState(false);
   const [rawHex, setRawHex] = useState('ca ac bd 04 01 b8 79 6a');
   const [log, setLog] = useState<string[]>([]);
   const foundRef = useRef(false);
@@ -65,6 +66,7 @@ export default function DashboardScreen() {
             setLock(t.locked);
             setFar(t.headlightOn);
             setCruise(t.cruiseOn);
+            setZeroStart(t.zeroStartOn);
           });
           ble.onDisconnect(() => {
             setStatus('idle');
@@ -104,16 +106,17 @@ export default function DashboardScreen() {
     }
   }
 
-  // Mod seç (hız limiti). Aktif bayraklarla birlikte gönderilir.
+  // Mod seç (hız limiti). Aktif bayraklar (zero-start dahil) korunarak gönderilir.
   function pickMode(m: ModeId) {
     setMode(m);
-    send(buildState(m, { lock, far, cruise }), 'MOD ' + MODES[m].label);
+    send(buildState(m, { lock, far, cruise, zeroStart }), 'MOD ' + MODES[m].label);
   }
-  function toggle(kind: 'lock' | 'far' | 'cruise', val: boolean) {
-    const next = { lock, far, cruise, [kind]: val };
+  function toggle(kind: 'lock' | 'far' | 'cruise' | 'zeroStart', val: boolean) {
+    const next = { lock, far, cruise, zeroStart, [kind]: val };
     if (kind === 'lock') setLock(val);
     if (kind === 'far') setFar(val);
     if (kind === 'cruise') setCruise(val);
+    if (kind === 'zeroStart') setZeroStart(val);
     send(buildState(mode, next), kind + (val ? ' açık' : ' kapalı'));
   }
 
@@ -175,6 +178,21 @@ export default function DashboardScreen() {
         ))}
       </View>
       <Text style={styles.hint}>ECO en düşük hız limiti · SPORT en yüksek. Yasal sınırı aşma — sorumluluk sende.</Text>
+
+      {/* Zero Start — öne çıkan */}
+      <Text style={styles.sectionTitle}>Zero Start (duran yerden kalkış)</Text>
+      <TouchableOpacity
+        style={[styles.zeroBtn, zeroStart && styles.zeroOn]}
+        onPress={() => toggle('zeroStart', !zeroStart)}
+      >
+        <Text style={[styles.zeroTxt, zeroStart && styles.zeroTxtOn]}>
+          🚀 ZERO START: {zeroStart ? 'AÇIK' : 'KAPALI'}
+        </Text>
+        <Text style={[styles.zeroSub, zeroStart && styles.zeroTxtOn]}>
+          {zeroStart ? 'İtmeden, gazla kalkış aktif' : 'Kalkış için ~3 km/h itmek gerekir'}
+        </Text>
+      </TouchableOpacity>
+      <Text style={styles.hint}>Mod değiştirince korunur. Sehpada test et.</Text>
 
       {/* Bayraklar */}
       <Text style={styles.sectionTitle}>Kontroller</Text>
@@ -263,6 +281,11 @@ const styles = StyleSheet.create({
   toggleTxt: { fontWeight: '700', color: '#555', fontSize: 13 },
   toggleTxtOn: { color: '#fff' },
   toggleState: { fontSize: 10, color: '#999', marginTop: 2 },
+  zeroBtn: { borderWidth: 2, borderColor: '#d32f2f', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+  zeroOn: { backgroundColor: '#d32f2f', borderColor: '#d32f2f' },
+  zeroTxt: { fontWeight: '900', color: '#d32f2f', fontSize: 16 },
+  zeroSub: { fontSize: 11, color: '#999', marginTop: 4 },
+  zeroTxtOn: { color: '#fff' },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 12, fontFamily: 'monospace', fontSize: 14 },
   logLine: { fontSize: 11, color: '#555', fontFamily: 'monospace', paddingVertical: 1 },
 });

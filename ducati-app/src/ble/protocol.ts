@@ -43,11 +43,12 @@ export function buildMode(mode: ModeId): Uint8Array {
  */
 export function buildState(
   mode: ModeId,
-  flags: { cruise?: boolean; far?: boolean; lock?: boolean } = {},
+  flags: { cruise?: boolean; far?: boolean; lock?: boolean; zeroStart?: boolean } = {},
 ): Uint8Array {
   const m = MODES[mode];
   let b4 = m.b4;
   if (flags.cruise) b4 |= FLAGS.cruise;
+  if (flags.zeroStart) b4 |= FLAGS.zeroStart;
   if (flags.far) b4 |= FLAGS.far;
   if (flags.lock) b4 |= FLAGS.lock;
   return buildCommand(m.b3, b4);

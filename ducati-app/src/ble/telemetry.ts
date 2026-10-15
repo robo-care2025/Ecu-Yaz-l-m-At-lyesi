@@ -10,8 +10,9 @@
  *     idx14 : CK = (STATE + 0x60) & 0xFF   (STATE kontrolü)
  *
  * STATE baytı:
- *   alt nibble (0x0F) = sürüş modu (1/2/3)
+ *   bit 0x01/0x02 (& 0x03) = sürüş modu (1/2/3)
  *   bit 0x04          = CRUISE aktif
+ *   bit 0x08          = ZERO START aktif (duran yerden kalkış)
  *   bit 0x10          = FAR açık
  *   bit 0x80          = KİLİTLİ
  *
@@ -29,6 +30,7 @@ export interface Telemetry {
   stateChecksumOk: boolean;
   mode: number | null;
   cruiseOn: boolean;
+  zeroStartOn: boolean;
   headlightOn: boolean;
   locked: boolean;
   speedRaw: number | null;
@@ -52,6 +54,7 @@ export function parseTelemetry(bytes: Uint8Array): Telemetry {
       stateChecksumOk: false,
       mode: null,
       cruiseOn: false,
+      zeroStartOn: false,
       headlightOn: false,
       locked: false,
       speedRaw: null,
@@ -67,8 +70,9 @@ export function parseTelemetry(bytes: Uint8Array): Telemetry {
     state,
     stateHex: `0x${state.toString(16).padStart(2, '0')}`,
     stateChecksumOk: ((state + 0x60) & 0xff) === ck,
-    mode: state & 0x0f,
+    mode: state & 0x03,
     cruiseOn: (state & 0x04) !== 0,
+    zeroStartOn: (state & 0x08) !== 0,
     headlightOn: (state & 0x10) !== 0,
     locked: (state & 0x80) !== 0,
     speedRaw,

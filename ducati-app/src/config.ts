@@ -37,6 +37,7 @@ export const MODES: Record<ModeId, { b3: number; b4: number; label: string }> = 
  */
 export const FLAGS = {
   cruise: 0x02,
+  zeroStart: 0x04, // B4 biti 0x04 -> duran yerden kalkış (STATE biti 0x08)
   far: 0x18,
   lock: 0x40,
 };
