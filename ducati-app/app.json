@@ -4,7 +4,7 @@
     "slug": "ducati-pro-kontrol",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.ecuatolyesi.ducatipro",
@@ -22,7 +22,7 @@
       ]
     },
     "plugins": [
-      ["expo-splash-screen", { "backgroundColor": "#ffffff" }],
+      ["expo-splash-screen", { "backgroundColor": "#0B0B0C" }],
       ["react-native-ble-plx", {
         "isBackgroundEnabled": false,
         "modes": ["central"],

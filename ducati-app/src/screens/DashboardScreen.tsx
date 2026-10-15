@@ -1,11 +1,6 @@
 /**
- * DashboardScreen.tsx — Ducati PRO-I EVO kontrol ekranı.
- *
- * Çözülen protokolle: mod (= hız limiti) seçimi, kilit, far, cruise,
- * canlı telemetri (mod/hız/kilit/far). Ayrıca ham komut test kutusu.
- *
- * Komutlar mutlak durum yansıması olduğundan bayraklar (far/kilit/cruise)
- * seçili moda OR'lanarak gönderilir.
+ * DashboardScreen.tsx — Ducati PRO-I EVO kontrol ekranı (koyu tema).
+ * Hız kadranı, mod (hız limiti), Zero Start, kilit/far/cruise, canlı telemetri.
  */
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -17,13 +12,24 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  StatusBar,
 } from 'react-native';
 import { ble } from '../ble/bleManager';
 import { parseTelemetry, modeLabel, Telemetry } from '../ble/telemetry';
-import { buildMode, buildState, hexToBytes, validateCommand } from '../ble/protocol';
+import { buildState, hexToBytes, validateCommand } from '../ble/protocol';
 import { MODES, ModeId } from '../config';
+import { Gauge } from '../components/Gauge';
 
 const MODE_IDS: ModeId[] = [1, 2, 3];
+const RED = '#E2001A';
+const MUTED = '#8A8A8E';
+
+function modeColor(mode: number | null): string {
+  if (mode === 1) return '#27C26E';
+  if (mode === 2) return '#F5A623';
+  if (mode === 3) return RED;
+  return MUTED;
+}
 
 export default function DashboardScreen() {
   const [status, setStatus] = useState<'idle' | 'scanning' | 'connecting' | 'connected'>('idle');
@@ -35,12 +41,13 @@ export default function DashboardScreen() {
   const [zeroStart, setZeroStart] = useState(false);
   const [rawHex, setRawHex] = useState('ca ac bd 04 01 b8 79 6a');
   const [log, setLog] = useState<string[]>([]);
+  const [advanced, setAdvanced] = useState(false);
   const foundRef = useRef(false);
 
   useEffect(() => () => void ble.disconnect(), []);
 
   function addLog(line: string) {
-    setLog((l) => [new Date().toLocaleTimeString() + '  ' + line, ...l].slice(0, 30));
+    setLog((l) => [new Date().toLocaleTimeString() + '  ' + line, ...l].slice(0, 40));
   }
 
   async function handleConnect() {
@@ -62,7 +69,7 @@ export default function DashboardScreen() {
           ble.startTelemetry((bytes) => {
             const t = parseTelemetry(bytes);
             setTele(t);
-            if (t.mode && (t.mode === 1 || t.mode === 2 || t.mode === 3)) setMode(t.mode as ModeId);
+            if (t.mode === 1 || t.mode === 2 || t.mode === 3) setMode(t.mode as ModeId);
             setLock(t.locked);
             setFar(t.headlightOn);
             setCruise(t.cruiseOn);
@@ -100,13 +107,12 @@ export default function DashboardScreen() {
     }
     try {
       await ble.sendPacket(bytes);
-      addLog('→ ' + label + ' : ' + hex(bytes));
+      addLog('→ ' + label);
     } catch (e: any) {
       Alert.alert('Gönderim hatası', String(e?.message ?? e));
     }
   }
 
-  // Mod seç (hız limiti). Aktif bayraklar (zero-start dahil) korunarak gönderilir.
   function pickMode(m: ModeId) {
     setMode(m);
     send(buildState(m, { lock, far, cruise, zeroStart }), 'MOD ' + MODES[m].label);
@@ -119,173 +125,212 @@ export default function DashboardScreen() {
     if (kind === 'zeroStart') setZeroStart(val);
     send(buildState(mode, next), kind + (val ? ' açık' : ' kapalı'));
   }
-
   function sendRaw() {
     const bytes = hexToBytes(rawHex);
-    const ok = bytes.length === 8 ? (validateCommand(bytes) ? ' (ck✓)' : ' (ck✗)') : '';
+    const ok = bytes.length === 8 ? (validateCommand(bytes) ? ' ck✓' : ' ck✗') : '';
     send(bytes, 'ham' + ok);
   }
 
+  const connected = status === 'connected';
+  const mColor = modeColor(tele?.mode ?? mode);
+  const speed = tele?.speedKmh != null ? Math.round(tele.speedKmh) : 0;
+
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Text style={styles.brand}>PRO-I EVO</Text>
-        <Text style={styles.sub}>özel kontrol · protokol çözüldü</Text>
-      </View>
-
-      {/* Bağlan / durum */}
-      {status !== 'connected' ? (
-        <TouchableOpacity
-          style={styles.connectBtn}
-          onPress={handleConnect}
-          disabled={status === 'scanning' || status === 'connecting'}
-        >
-          {status === 'idle' ? (
-            <Text style={styles.connectTxt}>BAĞLAN</Text>
-          ) : (
-            <View style={styles.row}>
-              <ActivityIndicator color="#fff" />
-              <Text style={styles.connectTxt}> {status === 'scanning' ? 'Taranıyor…' : 'Bağlanıyor…'}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      ) : (
-        <Text style={styles.connected}>● Bağlı</Text>
-      )}
-
-      {/* Telemetri */}
-      <View style={styles.teleBox}>
-        <View style={styles.teleRow}>
-          <Metric label="HIZ" value={tele?.speedKmh != null ? String(tele.speedKmh) : '--'} unit="km/h*" />
-          <Metric label="MOD" value={modeLabel(tele?.mode ?? null)} />
-          <Metric label="KİLİT" value={tele ? (tele.locked ? '🔒' : '🔓') : '--'} />
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" backgroundColor="#0B0B0C" />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Marka + durum */}
+        <View style={styles.topBar}>
+          <View>
+            <Text style={styles.brand}>
+              PRO-<Text style={{ color: RED }}>I</Text> EVO
+            </Text>
+            <Text style={styles.brandSub}>Urban e-Mobility</Text>
+          </View>
+          <View style={[styles.statusPill, connected ? styles.pillOn : styles.pillOff]}>
+            <View style={[styles.dot, { backgroundColor: connected ? '#27C26E' : MUTED }]} />
+            <Text style={styles.statusTxt}>{connected ? 'Bağlı' : 'Bağlı değil'}</Text>
+          </View>
         </View>
-        <Text style={styles.calib}>*hız ölçeği kalibre edilmeli (telemetry.ts SPEED_SCALE)</Text>
-        {tele?.raw ? <Text style={styles.raw}>{tele.raw}</Text> : null}
-      </View>
 
-      {/* Mod = hız limiti */}
-      <Text style={styles.sectionTitle}>Sürüş Modu (hız limiti)</Text>
-      <View style={styles.modeRow}>
-        {MODE_IDS.map((m) => (
+        {/* Kadran */}
+        <View style={styles.gaugeCard}>
+          <Gauge
+            value={speed}
+            max={35}
+            unit="km/h"
+            color={mColor}
+            sub={tele ? modeLabel(tele.mode) : '—'}
+          />
+          <View style={styles.badges}>
+            <Badge label="KİLİT" on={!!tele?.locked} onColor={RED} icon="🔒" offIcon="🔓" />
+            <Badge label="FAR" on={!!tele?.headlightOn} onColor="#F5A623" icon="💡" offIcon="💡" />
+            <Badge label="ZERO" on={!!tele?.zeroStartOn} onColor="#27C26E" icon="🚀" offIcon="🚀" />
+            <Badge label="CRUISE" on={!!tele?.cruiseOn} onColor="#3498DB" icon="🛞" offIcon="🛞" />
+          </View>
+        </View>
+
+        {/* Bağlan */}
+        {!connected && (
           <TouchableOpacity
-            key={m}
-            style={[styles.modeBtn, mode === m && styles.modeBtnActive]}
-            onPress={() => pickMode(m)}
+            style={styles.connectBtn}
+            onPress={handleConnect}
+            disabled={status === 'scanning' || status === 'connecting'}
+            activeOpacity={0.85}
           >
-            <Text style={[styles.modeTxt, mode === m && styles.modeTxtActive]}>{MODES[m].label}</Text>
+            {status === 'idle' ? (
+              <Text style={styles.connectTxt}>BAĞLAN</Text>
+            ) : (
+              <View style={styles.row}>
+                <ActivityIndicator color="#fff" />
+                <Text style={styles.connectTxt}> {status === 'scanning' ? 'Taranıyor…' : 'Bağlanıyor…'}</Text>
+              </View>
+            )}
           </TouchableOpacity>
-        ))}
-      </View>
-      <Text style={styles.hint}>ECO en düşük hız limiti · SPORT en yüksek. Yasal sınırı aşma — sorumluluk sende.</Text>
+        )}
 
-      {/* Zero Start — öne çıkan */}
-      <Text style={styles.sectionTitle}>Zero Start (duran yerden kalkış)</Text>
-      <TouchableOpacity
-        style={[styles.zeroBtn, zeroStart && styles.zeroOn]}
-        onPress={() => toggle('zeroStart', !zeroStart)}
-      >
-        <Text style={[styles.zeroTxt, zeroStart && styles.zeroTxtOn]}>
-          🚀 ZERO START: {zeroStart ? 'AÇIK' : 'KAPALI'}
+        {/* Mod */}
+        <Text style={styles.section}>SÜRÜŞ MODU — hız limiti</Text>
+        <View style={styles.modeRow}>
+          {MODE_IDS.map((m) => {
+            const active = (tele?.mode ?? mode) === m;
+            const c = modeColor(m);
+            return (
+              <TouchableOpacity
+                key={m}
+                style={[styles.modeBtn, active && { backgroundColor: c, borderColor: c }]}
+                onPress={() => pickMode(m)}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.modeTxt, active && styles.modeTxtOn]}>{MODES[m].label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Zero Start */}
+        <TouchableOpacity
+          style={[styles.zeroBtn, zeroStart && styles.zeroOn]}
+          onPress={() => toggle('zeroStart', !zeroStart)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.zeroIcon}>🚀</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.zeroTitle, zeroStart && { color: '#fff' }]}>ZERO START</Text>
+            <Text style={[styles.zeroSub, zeroStart && { color: '#ffffffcc' }]}>
+              {zeroStart ? 'İtmeden kalkış aktif · mod değişince korunur' : 'Kalkış için ~3 km/h itmek gerekir'}
+            </Text>
+          </View>
+          <Text style={[styles.zeroState, zeroStart && { color: '#fff' }]}>{zeroStart ? 'AÇIK' : 'KAPALI'}</Text>
+        </TouchableOpacity>
+
+        {/* Kontroller */}
+        <Text style={styles.section}>KONTROLLER</Text>
+        <View style={styles.ctrlRow}>
+          <Ctrl label="Kilit" icon="🔒" on={lock} onColor={RED} onPress={() => toggle('lock', !lock)} />
+          <Ctrl label="Far" icon="💡" on={far} onColor="#F5A623" onPress={() => toggle('far', !far)} />
+          <Ctrl label="Cruise" icon="🛞" on={cruise} onColor="#3498DB" onPress={() => toggle('cruise', !cruise)} />
+        </View>
+
+        {/* Gelişmiş */}
+        <TouchableOpacity style={styles.advToggle} onPress={() => setAdvanced((a) => !a)}>
+          <Text style={styles.advTxt}>{advanced ? '▾ Gelişmiş' : '▸ Gelişmiş (ham komut · log)'}</Text>
+        </TouchableOpacity>
+        {advanced && (
+          <View>
+            <TextInput
+              style={styles.input}
+              value={rawHex}
+              onChangeText={setRawHex}
+              autoCapitalize="none"
+              placeholderTextColor={MUTED}
+              placeholder="ca ac bd 04 01 b8 79 6a"
+            />
+            <TouchableOpacity style={styles.sendBtn} onPress={sendRaw} activeOpacity={0.85}>
+              <Text style={styles.sendTxt}>HAM KOMUT GÖNDER</Text>
+            </TouchableOpacity>
+            {tele?.raw ? <Text style={styles.rawLine}>{tele.raw}{tele.stateChecksumOk ? '  ck✓' : ''}</Text> : null}
+            <View style={{ height: 8 }} />
+            {log.map((l, i) => (
+              <Text key={i} style={styles.logLine}>{l}</Text>
+            ))}
+          </View>
+        )}
+
+        <Text style={styles.footer}>
+          ECO en düşük hız limiti · SPORT en yüksek. Yasal sınırı aşma — sorumluluk sende.
         </Text>
-        <Text style={[styles.zeroSub, zeroStart && styles.zeroTxtOn]}>
-          {zeroStart ? 'İtmeden, gazla kalkış aktif' : 'Kalkış için ~3 km/h itmek gerekir'}
-        </Text>
-      </TouchableOpacity>
-      <Text style={styles.hint}>Mod değiştirince korunur. Sehpada test et.</Text>
-
-      {/* Bayraklar */}
-      <Text style={styles.sectionTitle}>Kontroller</Text>
-      <View style={styles.toggleRow}>
-        <Toggle label="🔒 Kilit" on={lock} onPress={() => toggle('lock', !lock)} />
-        <Toggle label="💡 Far" on={far} onPress={() => toggle('far', !far)} />
-        <Toggle label="🛞 Cruise" on={cruise} onPress={() => toggle('cruise', !cruise)} />
-      </View>
-
-      {/* Ham gönderim */}
-      <Text style={styles.sectionTitle}>Ham Komut (test)</Text>
-      <TextInput
-        style={styles.input}
-        value={rawHex}
-        onChangeText={setRawHex}
-        autoCapitalize="none"
-        placeholder="ca ac bd 04 01 b8 79 6a"
-      />
-      <TouchableOpacity style={styles.sendBtn} onPress={sendRaw}>
-        <Text style={styles.connectTxt}>GÖNDER</Text>
-      </TouchableOpacity>
-
-      {/* Log */}
-      <Text style={styles.sectionTitle}>Log</Text>
-      {log.map((l, i) => (
-        <Text key={i} style={styles.logLine}>{l}</Text>
-      ))}
-    </ScrollView>
-  );
-}
-
-function Metric({ label, value, unit }: { label: string; value: string; unit?: string }) {
-  return (
-    <View style={styles.metric}>
-      <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={styles.metricValue}>
-        {value}
-        {unit ? <Text style={styles.metricUnit}> {unit}</Text> : null}
-      </Text>
+      </ScrollView>
     </View>
   );
 }
 
-function Toggle({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+function Badge({ label, on, onColor, icon, offIcon }: { label: string; on: boolean; onColor: string; icon: string; offIcon: string }) {
   return (
-    <TouchableOpacity style={[styles.toggleBtn, on && styles.toggleOn]} onPress={onPress}>
-      <Text style={[styles.toggleTxt, on && styles.toggleTxtOn]}>{label}</Text>
-      <Text style={[styles.toggleState, on && styles.toggleTxtOn]}>{on ? 'AÇIK' : 'kapalı'}</Text>
+    <View style={styles.badge}>
+      <Text style={[styles.badgeIcon, { opacity: on ? 1 : 0.3 }]}>{on ? icon : offIcon}</Text>
+      <Text style={[styles.badgeLabel, { color: on ? onColor : MUTED }]}>{label}</Text>
+    </View>
+  );
+}
+
+function Ctrl({ label, icon, on, onColor, onPress }: { label: string; icon: string; on: boolean; onColor: string; onPress: () => void }) {
+  return (
+    <TouchableOpacity
+      style={[styles.ctrl, on && { backgroundColor: onColor, borderColor: onColor }]}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
+      <Text style={styles.ctrlIcon}>{icon}</Text>
+      <Text style={[styles.ctrlLabel, on && { color: '#fff' }]}>{label}</Text>
+      <Text style={[styles.ctrlState, on && { color: '#ffffffcc' }]}>{on ? 'açık' : 'kapalı'}</Text>
     </TouchableOpacity>
   );
 }
 
-function hex(bytes: Uint8Array): string {
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join(' ');
-}
-
+const CARD = '#151518';
+const BORDER = '#242428';
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 20, paddingBottom: 48 },
-  header: { backgroundColor: '#111', borderRadius: 12, padding: 16, marginBottom: 16 },
-  brand: { color: '#fff', fontSize: 28, fontWeight: '900', fontStyle: 'italic' },
-  sub: { color: '#bbb', fontSize: 12, marginTop: 2 },
-  connectBtn: { backgroundColor: '#d32f2f', borderRadius: 28, paddingVertical: 14, alignItems: 'center', marginVertical: 8 },
-  sendBtn: { backgroundColor: '#111', borderRadius: 24, paddingVertical: 12, alignItems: 'center', marginTop: 8 },
-  connectTxt: { color: '#fff', fontWeight: '800', fontSize: 16 },
-  connected: { color: '#2e7d32', fontWeight: '700', textAlign: 'center', marginVertical: 8 },
+  root: { flex: 1, backgroundColor: '#0B0B0C' },
+  content: { padding: 18, paddingBottom: 40 },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  brand: { color: '#fff', fontSize: 26, fontWeight: '900', fontStyle: 'italic', letterSpacing: 1 },
+  brandSub: { color: MUTED, fontSize: 11, marginTop: 1, letterSpacing: 1 },
+  statusPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
+  pillOn: { backgroundColor: '#13241a', borderColor: '#27C26E55' },
+  pillOff: { backgroundColor: CARD, borderColor: BORDER },
+  dot: { width: 8, height: 8, borderRadius: 4, marginRight: 7 },
+  statusTxt: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  gaugeCard: { backgroundColor: CARD, borderRadius: 20, borderWidth: 1, borderColor: BORDER, paddingTop: 18, paddingBottom: 16, marginBottom: 14 },
+  badges: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 6, paddingHorizontal: 10 },
+  badge: { alignItems: 'center' },
+  badgeIcon: { fontSize: 18 },
+  badgeLabel: { fontSize: 10, fontWeight: '800', marginTop: 3, letterSpacing: 1 },
+  connectBtn: { backgroundColor: RED, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 14 },
+  connectTxt: { color: '#fff', fontWeight: '900', fontSize: 16, letterSpacing: 1 },
   row: { flexDirection: 'row', alignItems: 'center' },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: '#333', marginTop: 22, marginBottom: 8 },
-  teleBox: { backgroundColor: '#f5f5f5', borderRadius: 12, padding: 16 },
-  teleRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  metric: { flex: 1, alignItems: 'center' },
-  metricLabel: { color: '#888', fontSize: 11, letterSpacing: 1 },
-  metricValue: { color: '#111', fontSize: 20, fontWeight: '800', marginTop: 4 },
-  metricUnit: { fontSize: 11, color: '#888', fontWeight: '400' },
-  calib: { color: '#bbb', fontSize: 9, textAlign: 'center', marginTop: 6 },
-  raw: { color: '#aaa', fontSize: 10, marginTop: 6, fontFamily: 'monospace', textAlign: 'center' },
+  section: { color: MUTED, fontSize: 11, fontWeight: '800', letterSpacing: 1.5, marginTop: 12, marginBottom: 10 },
   modeRow: { flexDirection: 'row', gap: 10 },
-  modeBtn: { flex: 1, borderWidth: 1.5, borderColor: '#ddd', borderRadius: 24, paddingVertical: 16, alignItems: 'center' },
-  modeBtnActive: { backgroundColor: '#d32f2f', borderColor: '#d32f2f' },
-  modeTxt: { fontWeight: '800', color: '#555', fontSize: 13 },
-  modeTxtActive: { color: '#fff' },
-  hint: { color: '#999', fontSize: 11, marginTop: 6 },
-  toggleRow: { flexDirection: 'row', gap: 10 },
-  toggleBtn: { flex: 1, borderWidth: 1.5, borderColor: '#ddd', borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
-  toggleOn: { backgroundColor: '#111', borderColor: '#111' },
-  toggleTxt: { fontWeight: '700', color: '#555', fontSize: 13 },
-  toggleTxtOn: { color: '#fff' },
-  toggleState: { fontSize: 10, color: '#999', marginTop: 2 },
-  zeroBtn: { borderWidth: 2, borderColor: '#d32f2f', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
-  zeroOn: { backgroundColor: '#d32f2f', borderColor: '#d32f2f' },
-  zeroTxt: { fontWeight: '900', color: '#d32f2f', fontSize: 16 },
-  zeroSub: { fontSize: 11, color: '#999', marginTop: 4 },
-  zeroTxtOn: { color: '#fff' },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 12, fontFamily: 'monospace', fontSize: 14 },
-  logLine: { fontSize: 11, color: '#555', fontFamily: 'monospace', paddingVertical: 1 },
+  modeBtn: { flex: 1, backgroundColor: CARD, borderWidth: 1.5, borderColor: BORDER, borderRadius: 16, paddingVertical: 16, alignItems: 'center' },
+  modeTxt: { color: '#C9C9CE', fontWeight: '900', fontSize: 13, letterSpacing: 1 },
+  modeTxtOn: { color: '#fff' },
+  zeroBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: CARD, borderWidth: 1.5, borderColor: '#27C26E55', borderRadius: 16, padding: 16, marginTop: 14 },
+  zeroOn: { backgroundColor: '#27C26E', borderColor: '#27C26E' },
+  zeroIcon: { fontSize: 24, marginRight: 12 },
+  zeroTitle: { color: '#27C26E', fontWeight: '900', fontSize: 15, letterSpacing: 1 },
+  zeroSub: { color: MUTED, fontSize: 11, marginTop: 2 },
+  zeroState: { color: '#27C26E', fontWeight: '900', fontSize: 13, marginLeft: 8 },
+  ctrlRow: { flexDirection: 'row', gap: 10 },
+  ctrl: { flex: 1, backgroundColor: CARD, borderWidth: 1.5, borderColor: BORDER, borderRadius: 16, paddingVertical: 14, alignItems: 'center' },
+  ctrlIcon: { fontSize: 20 },
+  ctrlLabel: { color: '#C9C9CE', fontWeight: '800', fontSize: 13, marginTop: 4 },
+  ctrlState: { color: MUTED, fontSize: 10, marginTop: 1 },
+  advToggle: { marginTop: 18, paddingVertical: 6 },
+  advTxt: { color: MUTED, fontSize: 13, fontWeight: '700' },
+  input: { backgroundColor: CARD, borderWidth: 1, borderColor: BORDER, borderRadius: 12, padding: 13, color: '#fff', fontFamily: 'monospace', fontSize: 14, marginTop: 6 },
+  sendBtn: { backgroundColor: '#1F1F23', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 8 },
+  sendTxt: { color: '#fff', fontWeight: '800', fontSize: 13, letterSpacing: 1 },
+  rawLine: { color: MUTED, fontSize: 10, marginTop: 10, fontFamily: 'monospace', textAlign: 'center' },
+  logLine: { color: '#6E6E73', fontSize: 11, fontFamily: 'monospace', paddingVertical: 1 },
+  footer: { color: '#55555A', fontSize: 11, marginTop: 22, textAlign: 'center', lineHeight: 16 },
 });
