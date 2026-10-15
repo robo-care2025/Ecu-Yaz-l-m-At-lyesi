@@ -17,7 +17,7 @@ import {
 import { ble } from '../ble/bleManager';
 import { parseTelemetry, modeLabel, Telemetry } from '../ble/telemetry';
 import { buildState, hexToBytes, validateCommand } from '../ble/protocol';
-import { MODES, ModeId } from '../config';
+import { MODES, ModeId, ADVANCED_PIN } from '../config';
 import { Gauge } from '../components/Gauge';
 
 const MODE_IDS: ModeId[] = [1, 2, 3];
@@ -42,6 +42,8 @@ export default function DashboardScreen() {
   const [rawHex, setRawHex] = useState('ca ac bd 04 01 b8 79 6a');
   const [log, setLog] = useState<string[]>([]);
   const [advanced, setAdvanced] = useState(false);
+  const [advUnlocked, setAdvUnlocked] = useState(false);
+  const [pin, setPin] = useState('');
   const foundRef = useRef(false);
 
   useEffect(() => () => void ble.disconnect(), []);
@@ -250,11 +252,43 @@ export default function DashboardScreen() {
           <Ctrl label="Cruise" icon="🛞" on={cruise} onColor="#3498DB" onPress={() => toggle('cruise', !cruise)} />
         </View>
 
-        {/* Gelişmiş */}
+        {/* Gelişmiş (şifreli) */}
         <TouchableOpacity style={styles.advToggle} onPress={() => setAdvanced((a) => !a)}>
-          <Text style={styles.advTxt}>{advanced ? '▾ Gelişmiş' : '▸ Gelişmiş (ham komut · log)'}</Text>
+          <Text style={styles.advTxt}>
+            {advanced ? '▾ Gelişmiş' : '▸ Gelişmiş'} {advUnlocked ? '🔓' : '🔒'} (ham komut · log)
+          </Text>
         </TouchableOpacity>
-        {advanced && (
+        {advanced && !advUnlocked && (
+          <View style={styles.pinBox}>
+            <Text style={styles.pinLabel}>🔒 Bu bölüm şifreli</Text>
+            <TextInput
+              style={styles.pinInput}
+              value={pin}
+              onChangeText={setPin}
+              keyboardType="number-pad"
+              secureTextEntry
+              maxLength={8}
+              placeholder="Şifre"
+              placeholderTextColor={MUTED}
+            />
+            <TouchableOpacity
+              style={styles.sendBtn}
+              activeOpacity={0.85}
+              onPress={() => {
+                if (pin === ADVANCED_PIN) {
+                  setAdvUnlocked(true);
+                  setPin('');
+                } else {
+                  Alert.alert('Yanlış şifre');
+                  setPin('');
+                }
+              }}
+            >
+              <Text style={styles.sendTxt}>KİLİDİ AÇ</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        {advanced && advUnlocked && (
           <View>
             <TextInput
               style={styles.input}
@@ -370,6 +404,9 @@ const styles = StyleSheet.create({
   ctrlState: { color: MUTED, fontSize: 10, marginTop: 1 },
   advToggle: { marginTop: 18, paddingVertical: 6 },
   advTxt: { color: MUTED, fontSize: 13, fontWeight: '700' },
+  pinBox: { backgroundColor: CARD, borderWidth: 1, borderColor: BORDER, borderRadius: 12, padding: 14, marginTop: 6 },
+  pinLabel: { color: '#C9C9CE', fontSize: 13, fontWeight: '700', marginBottom: 8 },
+  pinInput: { backgroundColor: '#0F0F11', borderWidth: 1, borderColor: BORDER, borderRadius: 10, padding: 12, color: '#fff', fontSize: 18, letterSpacing: 6, textAlign: 'center' },
   input: { backgroundColor: CARD, borderWidth: 1, borderColor: BORDER, borderRadius: 12, padding: 13, color: '#fff', fontFamily: 'monospace', fontSize: 14, marginTop: 6 },
   sendBtn: { backgroundColor: '#1F1F23', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 8 },
   sendTxt: { color: '#fff', fontWeight: '800', fontSize: 13, letterSpacing: 1 },

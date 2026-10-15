@@ -50,3 +50,6 @@ export const KNOWN_COMMANDS: { label: string; b3: number; b4: number }[] = [
   { label: 'KİLİTLE (mod1)', b3: 0x00, b4: 0x40 },
   { label: 'KİLİT AÇ (mod1)', b3: 0x00, b4: 0x00 },
 ];
+
+/** Gelişmiş bölüm şifresi (ham komut/log erişimi). */
+export const ADVANCED_PIN = '8586';
