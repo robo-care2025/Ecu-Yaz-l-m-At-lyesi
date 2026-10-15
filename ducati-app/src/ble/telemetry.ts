@@ -19,6 +19,7 @@
  * HIZ: 16-bit = idx2 + idx3*256, km/h = deger / 10.
  *      20 km/h -> idx2=200,idx3=0 (=200); 30 km/h -> idx2=0x2c,idx3=1 (=300).
  *      idx12 hıza DAHİL DEĞİL (kilometre sayacı).
+ * BATARYA: idx8 = yüzde (tüm kaptürlerde 0x64=100, şarjda). Düşük şarjda doğrula.
  */
 
 /** 16-bit hız -> km/h böleni (idx2+idx3*256)/10. Ölçümle kalibre edildi. */
@@ -29,6 +30,7 @@ export interface Telemetry {
   stateHex: string;
   stateChecksumOk: boolean;
   mode: number | null;
+  batteryPct: number | null;
   cruiseOn: boolean;
   zeroStartOn: boolean;
   headlightOn: boolean;
@@ -53,6 +55,7 @@ export function parseTelemetry(bytes: Uint8Array): Telemetry {
       stateHex: '--',
       stateChecksumOk: false,
       mode: null,
+      batteryPct: null,
       cruiseOn: false,
       zeroStartOn: false,
       headlightOn: false,
@@ -71,6 +74,7 @@ export function parseTelemetry(bytes: Uint8Array): Telemetry {
     stateHex: `0x${state.toString(16).padStart(2, '0')}`,
     stateChecksumOk: ((state + 0x60) & 0xff) === ck,
     mode: state & 0x03,
+    batteryPct: bytes[8],
     cruiseOn: (state & 0x04) !== 0,
     zeroStartOn: (state & 0x08) !== 0,
     headlightOn: (state & 0x10) !== 0,

@@ -162,6 +162,7 @@ export default function DashboardScreen() {
             color={mColor}
             sub={tele ? modeLabel(tele.mode) : '—'}
           />
+          <Battery pct={tele?.batteryPct ?? null} />
           <View style={styles.badges}>
             <Badge label="KİLİT" on={!!tele?.locked} onColor={RED} icon="🔒" offIcon="🔓" />
             <Badge label="FAR" on={!!tele?.headlightOn} onColor="#F5A623" icon="💡" offIcon="💡" />
@@ -265,6 +266,20 @@ export default function DashboardScreen() {
   );
 }
 
+function Battery({ pct }: { pct: number | null }) {
+  const v = pct == null ? 0 : Math.max(0, Math.min(100, pct));
+  const color = pct == null ? MUTED : v > 50 ? '#27C26E' : v > 20 ? '#F5A623' : RED;
+  return (
+    <View style={styles.battRow}>
+      <Text style={styles.battIcon}>🔋</Text>
+      <View style={styles.battTrack}>
+        <View style={[styles.battFill, { width: `${v}%`, backgroundColor: color }]} />
+      </View>
+      <Text style={[styles.battPct, { color }]}>{pct == null ? '--' : `${v}%`}</Text>
+    </View>
+  );
+}
+
 function Badge({ label, on, onColor, icon, offIcon }: { label: string; on: boolean; onColor: string; icon: string; offIcon: string }) {
   return (
     <View style={styles.badge}>
@@ -302,7 +317,12 @@ const styles = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, marginRight: 7 },
   statusTxt: { color: '#fff', fontSize: 12, fontWeight: '600' },
   gaugeCard: { backgroundColor: CARD, borderRadius: 20, borderWidth: 1, borderColor: BORDER, paddingTop: 18, paddingBottom: 16, marginBottom: 14 },
-  badges: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 6, paddingHorizontal: 10 },
+  battRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10, marginBottom: 2, paddingHorizontal: 22 },
+  battIcon: { fontSize: 15, marginRight: 8 },
+  battTrack: { flex: 1, height: 10, borderRadius: 6, backgroundColor: '#242428', overflow: 'hidden' },
+  battFill: { height: '100%', borderRadius: 6 },
+  battPct: { fontSize: 13, fontWeight: '800', marginLeft: 10, width: 44, textAlign: 'right' },
+  badges: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 12, paddingHorizontal: 10 },
   badge: { alignItems: 'center' },
   badgeIcon: { fontSize: 18 },
   badgeLabel: { fontSize: 10, fontWeight: '800', marginTop: 3, letterSpacing: 1 },
