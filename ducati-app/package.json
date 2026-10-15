@@ -10,12 +10,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@react-native-community/slider": "4.5.2",
     "expo": "~51.0.0",
     "expo-dev-client": "~4.0.0",
     "react": "18.2.0",
     "react-native": "0.74.5",
-    "react-native-ble-plx": "^3.2.1"
+    "react-native-ble-plx": "3.2.1"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
