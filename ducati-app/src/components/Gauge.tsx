@@ -1,14 +1,14 @@
 /**
- * Gauge.tsx — Hız kadranı (üst yarım daire, SVG) + tick'ler, uç etiketleri, degrade.
+ * Gauge.tsx — Hız kadranı (üst yarım daire, SVG) + tick'ler, sayılar, degrade.
  */
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Svg, { Path, Line, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Svg, { Path, Line, Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 
 const W = 280;
-const H = 184;
+const H = 188;
 const CX = W / 2;
-const CY = 160;
+const CY = 162;
 const R = 120;
 const STROKE = 18;
 const START = 270;
@@ -42,15 +42,9 @@ export function Gauge({
   const bg = arc(R, START, START + SWEEP);
   const fg = arc(R, START, START + SWEEP * frac);
 
-  // Tick'ler: 0..max arası her 1/7'de bir (8 çizgi)
-  const ticks = Array.from({ length: 8 }, (_, i) => {
-    const t = i / 7;
-    const ang = START + SWEEP * t;
-    const active = t <= frac + 0.001;
-    const outer = pol(R + STROKE / 2 + 2, ang);
-    const inner = pol(R - STROKE / 2 - 2, ang);
-    return { outer, inner, active, major: i % 7 === 0 };
-  });
+  // Her 5 birimde tick, her 10'da büyük + sayı
+  const tickVals: number[] = [];
+  for (let v = 0; v <= max; v += 5) tickVals.push(v);
 
   return (
     <View style={{ width: W, height: H, alignSelf: 'center' }}>
@@ -65,34 +59,52 @@ export function Gauge({
         {frac > 0.004 && (
           <Path d={fg} stroke="url(#gaugeFill)" strokeWidth={STROKE} strokeLinecap="round" fill="none" />
         )}
-        {ticks.map((tk, i) => (
-          <Line
-            key={i}
-            x1={tk.inner.x}
-            y1={tk.inner.y}
-            x2={tk.outer.x}
-            y2={tk.outer.y}
-            stroke={tk.active ? '#ffffff' : '#3A3A40'}
-            strokeWidth={tk.major ? 3 : 2}
-            strokeLinecap="round"
-          />
-        ))}
+        {tickVals.map((v) => {
+          const ang = START + SWEEP * (v / max);
+          const active = v / max <= frac + 0.001;
+          const major = v % 10 === 0;
+          const outer = pol(R + STROKE / 2 + 2, ang);
+          const inner = pol(R - STROKE / 2 - 2, ang);
+          const lbl = pol(R - STROKE / 2 - 13, ang);
+          return (
+            <React.Fragment key={v}>
+              <Line
+                x1={inner.x}
+                y1={inner.y}
+                x2={outer.x}
+                y2={outer.y}
+                stroke={active ? '#ffffff' : '#3A3A40'}
+                strokeWidth={major ? 3 : 2}
+                strokeLinecap="round"
+              />
+              {major && (
+                <SvgText
+                  x={lbl.x}
+                  y={lbl.y + 4}
+                  fill="#7A7A80"
+                  fontSize="11"
+                  fontWeight="700"
+                  textAnchor="middle"
+                >
+                  {v}
+                </SvgText>
+              )}
+            </React.Fragment>
+          );
+        })}
       </Svg>
       <View style={styles.center} pointerEvents="none">
         <Text style={styles.value}>{value}</Text>
         <Text style={styles.unit}>{unit}</Text>
         {sub ? <Text style={[styles.sub, { color }]}>{sub}</Text> : null}
       </View>
-      <Text style={[styles.end, { left: 10 }]}>0</Text>
-      <Text style={[styles.end, { right: 10 }]}>{max}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { position: 'absolute', left: 0, right: 0, top: 64, alignItems: 'center' },
+  center: { position: 'absolute', left: 0, right: 0, top: 66, alignItems: 'center' },
   value: { color: '#fff', fontSize: 58, fontWeight: '900', lineHeight: 60 },
   unit: { color: '#8A8A8E', fontSize: 13, fontWeight: '600' },
   sub: { fontSize: 13, fontWeight: '800', marginTop: 6, letterSpacing: 2 },
-  end: { position: 'absolute', top: 150, color: '#6E6E73', fontSize: 12, fontWeight: '700' },
 });

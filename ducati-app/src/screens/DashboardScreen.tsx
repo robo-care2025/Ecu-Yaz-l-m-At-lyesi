@@ -157,7 +157,7 @@ export default function DashboardScreen() {
         <View style={styles.gaugeCard}>
           <Gauge
             value={speed}
-            max={35}
+            max={30}
             unit="km/h"
             color={mColor}
             sub={tele ? modeLabel(tele.mode) : '—'}
