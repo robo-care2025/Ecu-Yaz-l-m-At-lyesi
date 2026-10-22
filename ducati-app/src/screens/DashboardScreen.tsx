@@ -19,6 +19,7 @@ import { parseTelemetry, modeLabel, Telemetry } from '../ble/telemetry';
 import { buildState, hexToBytes, validateCommand } from '../ble/protocol';
 import { MODES, ModeId, ADVANCED_PIN } from '../config';
 import { Gauge } from '../components/Gauge';
+import { BatteryTestCard } from '../components/BatteryTestCard';
 
 const MODE_IDS: ModeId[] = [1, 2, 3];
 const RED = '#E2001A';
@@ -251,6 +252,9 @@ export default function DashboardScreen() {
           <Ctrl label="Far" icon="💡" on={far} onColor="#F5A623" onPress={() => toggle('far', !far)} />
           <Ctrl label="Cruise" icon="🛞" on={cruise} onColor="#3498DB" onPress={() => toggle('cruise', !cruise)} />
         </View>
+
+        {/* Batarya testi */}
+        <BatteryTestCard tele={tele} connected={connected} />
 
         {/* Gelişmiş (şifreli) */}
         <TouchableOpacity style={styles.advToggle} onPress={() => setAdvanced((a) => !a)}>
