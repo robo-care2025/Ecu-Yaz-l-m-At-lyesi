@@ -25,8 +25,10 @@
 /** 16-bit hız -> km/h böleni (idx2+idx3*256)/10. Ölçümle kalibre edildi. */
 export const SPEED_SCALE = 10;
 
-/** Trip sayacı (idx12+idx13) -> km çarpanı. TAHMİN — scooter ile kalibre edilecek. */
-export const TRIP_SCALE = 0.01;
+/**
+ * idx12+idx13 = SÜRÜŞ SÜRESİ (saniye). Scooter başında doğrulandı:
+ * cihaz hareket edince saniye gibi artıyor (mesafe değil, süre).
+ */
 
 export interface Telemetry {
   state: number | null;
@@ -41,11 +43,19 @@ export interface Telemetry {
   speedRaw: number | null;
   speedKmh: number | null;
   moving: boolean;
-  tripRaw: number | null;
-  tripKm: number | null;
+  rideSeconds: number | null;
+  rideTime: string;
   fault: boolean;
   faultCode: number;
   raw: string;
+}
+
+/** Saniye -> "d:ss" (ör. 506 -> "8:26"). */
+export function formatRideTime(sec: number | null): string {
+  if (sec == null) return '--';
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 const MODE_LABEL: Record<number, string> = { 1: 'ECO', 2: 'COMFORT', 3: 'SPORT' };
@@ -70,15 +80,14 @@ export function parseTelemetry(bytes: Uint8Array): Telemetry {
       speedRaw: null,
       speedKmh: null,
       moving: false,
-      tripRaw: null,
-      tripKm: null,
+      rideSeconds: null,
+      rideTime: '--',
       fault: false,
       faultCode: 0,
       raw: hex(bytes),
     };
   }
-  const faultCode = bytes[5] || bytes[7] || bytes[10];
-  const tripRaw = bytes[12] | (bytes[13] << 8);
+  const rideSeconds = bytes[12] | (bytes[13] << 8);
   const state = bytes[9];
   const ck = bytes[14];
   const speedRaw = bytes[2] | (bytes[3] << 8);
@@ -95,10 +104,13 @@ export function parseTelemetry(bytes: Uint8Array): Telemetry {
     speedRaw,
     speedKmh: +(speedRaw / SPEED_SCALE).toFixed(1),
     moving: (bytes[11] & 0x08) !== 0,
-    tripRaw,
-    tripKm: +(tripRaw * TRIP_SCALE).toFixed(2),
-    fault: faultCode !== 0,
-    faultCode,
+    rideSeconds,
+    rideTime: formatRideTime(rideSeconds),
+    // Arıza tespiti: doğrulanmış kod eşlemesi yok. Önceki sezgisel
+    // (bytes[5]||[7]||[10]) sağlam scooter'da yanlış "Arıza 0x3d" veriyordu.
+    // Gerçek arıza durumu yakalanıp kodu doğrulanana kadar devre dışı.
+    fault: false,
+    faultCode: 0,
     raw: hex(bytes),
   };
 }

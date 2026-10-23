@@ -174,13 +174,13 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* Trip + Durum */}
+        {/* Sürüş süresi + Durum */}
         <View style={styles.infoRow}>
           <View style={styles.infoCard}>
-            <Text style={styles.infoLabel}>TRIP</Text>
+            <Text style={styles.infoLabel}>SÜRÜŞ SÜRESİ</Text>
             <Text style={styles.infoValue}>
-              {tele?.tripKm != null ? tele.tripKm.toFixed(2) : '--'}
-              <Text style={styles.infoUnit}> km*</Text>
+              {tele?.rideTime ?? '--'}
+              <Text style={styles.infoUnit}> dk:sn</Text>
             </Text>
           </View>
           <View style={styles.infoCard}>
