@@ -20,6 +20,7 @@ import { buildState, hexToBytes, validateCommand } from '../ble/protocol';
 import { MODES, ModeId, ADVANCED_PIN } from '../config';
 import { Gauge } from '../components/Gauge';
 import { BatteryTestCard } from '../components/BatteryTestCard';
+import { useOdometer } from '../odometer';
 
 const MODE_IDS: ModeId[] = [1, 2, 3];
 const RED = '#E2001A';
@@ -45,7 +46,10 @@ export default function DashboardScreen() {
   const [advanced, setAdvanced] = useState(false);
   const [advUnlocked, setAdvUnlocked] = useState(false);
   const [pin, setPin] = useState('');
+  const [odoEdit, setOdoEdit] = useState(false);
+  const [odoInput, setOdoInput] = useState('');
   const foundRef = useRef(false);
+  const odo = useOdometer();
 
   useEffect(() => () => void ble.disconnect(), []);
 
@@ -72,6 +76,7 @@ export default function DashboardScreen() {
           ble.startTelemetry((bytes) => {
             const t = parseTelemetry(bytes);
             setTele(t);
+            odo.feed(t.speedKmh ?? 0);
             if (t.mode === 1 || t.mode === 2 || t.mode === 3) setMode(t.mode as ModeId);
             setLock(t.locked);
             setFar(t.headlightOn);
@@ -79,6 +84,7 @@ export default function DashboardScreen() {
             setZeroStart(t.zeroStartOn);
           });
           ble.onDisconnect(() => {
+            odo.pause();
             setStatus('idle');
             addLog('bağlantı koptu');
           });
@@ -173,6 +179,73 @@ export default function DashboardScreen() {
             <Badge label="CRUISE" on={!!tele?.cruiseOn} onColor="#3498DB" icon="🛞" offIcon="🛞" />
           </View>
         </View>
+
+        {/* Kilometre */}
+        <View style={styles.infoRow}>
+          <TouchableOpacity
+            style={styles.infoCard}
+            activeOpacity={0.85}
+            onLongPress={() =>
+              Alert.alert('Trip sıfırlansın mı?', '', [
+                { text: 'Vazgeç', style: 'cancel' },
+                { text: 'Sıfırla', style: 'destructive', onPress: odo.resetTrip },
+              ])
+            }
+          >
+            <Text style={styles.infoLabel}>TRIP</Text>
+            <Text style={styles.infoValue}>
+              {odo.tripKm.toFixed(2)}
+              <Text style={styles.infoUnit}> km</Text>
+            </Text>
+            <Text style={styles.infoHint}>sıfırlamak için basılı tut</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.infoCard}
+            activeOpacity={0.85}
+            onPress={() => {
+              setOdoInput(odo.totalKm.toFixed(1));
+              setOdoEdit(true);
+            }}
+          >
+            <Text style={styles.infoLabel}>TOPLAM</Text>
+            <Text style={styles.infoValue}>
+              {odo.totalKm.toFixed(1)}
+              <Text style={styles.infoUnit}> km</Text>
+            </Text>
+            <Text style={styles.infoHint}>düzeltmek için dokun</Text>
+          </TouchableOpacity>
+        </View>
+        {odoEdit && (
+          <View style={styles.odoEdit}>
+            <Text style={styles.infoLabel}>TOPLAM KM — scooter ekranındaki değeri gir</Text>
+            <View style={[styles.row, { marginTop: 8, gap: 8 }]}>
+              <TextInput
+                style={[styles.odoInput, { flex: 1 }]}
+                value={odoInput}
+                onChangeText={setOdoInput}
+                keyboardType="decimal-pad"
+                autoFocus
+              />
+              <TouchableOpacity
+                style={styles.odoBtn}
+                onPress={() => {
+                  const n = parseFloat(odoInput.replace(',', '.'));
+                  if (!Number.isFinite(n) || n < 0) {
+                    Alert.alert('Geçersiz değer', 'Örnek: 1234.5');
+                    return;
+                  }
+                  odo.setTotal(n);
+                  setOdoEdit(false);
+                }}
+              >
+                <Text style={styles.odoBtnTxt}>KAYDET</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.odoBtn, styles.odoBtnGhost]} onPress={() => setOdoEdit(false)}>
+                <Text style={styles.odoBtnTxt}>İPTAL</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* Sürüş süresi + Durum */}
         <View style={styles.infoRow}>
@@ -387,6 +460,12 @@ const styles = StyleSheet.create({
   infoValue: { color: '#fff', fontSize: 20, fontWeight: '900', marginTop: 4 },
   infoUnit: { color: MUTED, fontSize: 11, fontWeight: '600' },
   infoHealth: { fontSize: 14, fontWeight: '800', marginTop: 7 },
+  infoHint: { color: '#55555B', fontSize: 9, fontWeight: '600', marginTop: 3 },
+  odoEdit: { backgroundColor: CARD, borderWidth: 1, borderColor: RED, borderRadius: 14, padding: 14, marginBottom: 14 },
+  odoInput: { backgroundColor: '#0B0B0C', borderWidth: 1, borderColor: BORDER, borderRadius: 10, color: '#fff', fontSize: 18, fontWeight: '800', paddingHorizontal: 12, paddingVertical: 8 },
+  odoBtn: { backgroundColor: RED, borderRadius: 10, paddingHorizontal: 14, justifyContent: 'center' },
+  odoBtnGhost: { backgroundColor: '#242428' },
+  odoBtnTxt: { color: '#fff', fontWeight: '900', fontSize: 12, letterSpacing: 1 },
   connectBtn: { backgroundColor: RED, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 14 },
   connectTxt: { color: '#fff', fontWeight: '900', fontSize: 16, letterSpacing: 1 },
   row: { flexDirection: 'row', alignItems: 'center' },
