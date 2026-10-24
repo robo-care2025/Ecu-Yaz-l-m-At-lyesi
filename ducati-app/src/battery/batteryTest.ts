@@ -16,6 +16,7 @@
  * Eşikler başlangıç değerleridir; sağlam bataryalarla kalibre edilecek.
  * Bu dosya React Native'e bağlı değildir, Node ile test edilebilir.
  */
+import { stepKm } from '../distance';
 
 export type Phase = 'idle' | 'rest1' | 'launch' | 'ride' | 'rest2' | 'done' | 'aborted';
 
@@ -77,8 +78,6 @@ export interface Snapshot {
 const STOP_KMH = 0.5;
 /** Kalkış penceresi: hız 1 km/h'yi geçtikten sonra bu kadar süre en düşük yüzde aranır. */
 const LAUNCH_WINDOW_MS = 6000;
-/** İki telemetri paketi arası bu süreden uzunsa (bağlantı boşluğu) mesafeye eklenmez. */
-const MAX_GAP_MS = 2000;
 
 function median(xs: number[]): number {
   const s = [...xs].sort((a, b) => a - b);
@@ -145,8 +144,7 @@ export class BatteryTester {
 
     // Mesafe: yamuk kuralıyla hız × zaman. Bağlantı boşlukları atlanır.
     if (this.lastT != null && (this.phase === 'launch' || this.phase === 'ride')) {
-      const dt = now - this.lastT;
-      if (dt > 0 && dt <= MAX_GAP_MS) this.rideKm += ((this.lastSpeed + v) / 2) * (dt / 3_600_000);
+      this.rideKm += stepKm(this.lastSpeed, v, now - this.lastT);
     }
     this.lastT = now;
     this.lastSpeed = v;
