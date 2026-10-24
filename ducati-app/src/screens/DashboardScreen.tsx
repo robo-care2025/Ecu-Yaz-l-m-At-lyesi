@@ -48,6 +48,7 @@ export default function DashboardScreen() {
   const [pin, setPin] = useState('');
   const [odoEdit, setOdoEdit] = useState(false);
   const [odoInput, setOdoInput] = useState('');
+  const [odoPin, setOdoPin] = useState('');
   const foundRef = useRef(false);
   const odo = useOdometer();
 
@@ -204,6 +205,7 @@ export default function DashboardScreen() {
             activeOpacity={0.85}
             onPress={() => {
               setOdoInput(odo.totalKm.toFixed(1));
+              setOdoPin('');
               setOdoEdit(true);
             }}
           >
@@ -218,23 +220,44 @@ export default function DashboardScreen() {
         {odoEdit && (
           <View style={styles.odoEdit}>
             <Text style={styles.infoLabel}>TOPLAM KM — scooter ekranındaki değeri gir</Text>
+            <Text style={styles.infoHint}>
+              {odo.initialized
+                ? 'Yalnızca artırılabilir. Düşürmek sadece son düzeltmeden sonraki 5 dk içinde mümkün.'
+                : 'İlk kurulum: istediğin değeri girebilirsin. Sonrasında yalnızca artırılabilir.'}
+            </Text>
             <View style={[styles.row, { marginTop: 8, gap: 8 }]}>
               <TextInput
                 style={[styles.odoInput, { flex: 1 }]}
+                value={odoPin}
+                onChangeText={setOdoPin}
+                placeholder="Şifre"
+                placeholderTextColor={MUTED}
+                keyboardType="number-pad"
+                secureTextEntry
+                maxLength={8}
+                autoFocus
+              />
+              <TextInput
+                style={[styles.odoInput, { flex: 1.4 }]}
                 value={odoInput}
                 onChangeText={setOdoInput}
                 keyboardType="decimal-pad"
-                autoFocus
               />
+            </View>
+            <View style={[styles.row, { marginTop: 8, gap: 8, justifyContent: 'flex-end' }]}>
               <TouchableOpacity
                 style={styles.odoBtn}
                 onPress={() => {
-                  const n = parseFloat(odoInput.replace(',', '.'));
-                  if (!Number.isFinite(n) || n < 0) {
-                    Alert.alert('Geçersiz değer', 'Örnek: 1234.5');
+                  if (odoPin !== ADVANCED_PIN) {
+                    Alert.alert('Yanlış şifre', 'Toplam km yalnızca şifreyle düzeltilebilir.');
                     return;
                   }
-                  odo.setTotal(n);
+                  const err = odo.setTotal(parseFloat(odoInput.replace(',', '.')));
+                  if (err) {
+                    Alert.alert('Düzeltilemedi', err);
+                    return;
+                  }
+                  setOdoPin('');
                   setOdoEdit(false);
                 }}
               >
@@ -244,6 +267,16 @@ export default function DashboardScreen() {
                 <Text style={styles.odoBtnTxt}>İPTAL</Text>
               </TouchableOpacity>
             </View>
+            {odo.history.length > 0 && (
+              <View style={{ marginTop: 12 }}>
+                <Text style={styles.infoLabel}>DÜZELTME GEÇMİŞİ</Text>
+                {odo.history.map((h) => (
+                  <Text key={h.at} style={[styles.odoHist, h.to < h.from && { color: RED }]}>
+                    {new Date(h.at).toLocaleString('tr-TR')} · {h.from.toFixed(1)} → {h.to.toFixed(1)} km
+                  </Text>
+                ))}
+              </View>
+            )}
           </View>
         )}
 
@@ -463,8 +496,9 @@ const styles = StyleSheet.create({
   infoHint: { color: '#55555B', fontSize: 9, fontWeight: '600', marginTop: 3 },
   odoEdit: { backgroundColor: CARD, borderWidth: 1, borderColor: RED, borderRadius: 14, padding: 14, marginBottom: 14 },
   odoInput: { backgroundColor: '#0B0B0C', borderWidth: 1, borderColor: BORDER, borderRadius: 10, color: '#fff', fontSize: 18, fontWeight: '800', paddingHorizontal: 12, paddingVertical: 8 },
-  odoBtn: { backgroundColor: RED, borderRadius: 10, paddingHorizontal: 14, justifyContent: 'center' },
+  odoBtn: { backgroundColor: RED, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, justifyContent: 'center' },
   odoBtnGhost: { backgroundColor: '#242428' },
+  odoHist: { color: '#B0B0B5', fontSize: 11, marginTop: 4, fontFamily: 'monospace' },
   odoBtnTxt: { color: '#fff', fontWeight: '900', fontSize: 12, letterSpacing: 1 },
   connectBtn: { backgroundColor: RED, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 14 },
   connectTxt: { color: '#fff', fontWeight: '900', fontSize: 16, letterSpacing: 1 },
