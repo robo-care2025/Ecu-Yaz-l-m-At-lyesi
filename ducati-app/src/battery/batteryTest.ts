@@ -2,63 +2,66 @@
  * batteryTest.ts — Ducati PRO-I EVO için telemetriden batarya testi.
  *
  * Scooter BLE üzerinden voltaj/hücre/döngü göndermiyor; elimizde yalnızca
- * batarya yüzdesi (idx8) ve hız var. Yüzde voltajdan hesaplandığı için iki
- * dolaylı ölçüm yapılabilir:
+ * batarya yüzdesi (idx8, 1 puan çözünürlük, voltajdan) ve hız var.
  *
- *   1) YÜKTE DÜŞME: dururken okunan yüzde ile tam gaz kalkıştaki en düşük
- *      yüzde arasındaki fark. Yıpranmış (iç direnci yüksek) batarya daha
- *      çok düşer.
- *   2) MİNİ MENZİL: belli bir mesafe sürülür (mesafe hız × zamandan
- *      hesaplanır), dinlendikten sonra yüzde tekrar okunur.
- *      km / düşen puan × 100 = tahmini tam şarj menzili.
- *      Bunun referans menzile oranı = tahmini sağlık.
+ * Yöntem (MENZİL): dururken başlangıç yüzdesi okunur, yüzde en az
+ * MIN_DROP_PTS puan düşene kadar sürülür, durup batarya dinlendikten sonra
+ * yüzde tekrar okunur. km / düşen puan × 100 = tahmini tam şarj menzili;
+ * referans menzile oranı = tahmini sağlık.
  *
- * Eşikler başlangıç değerleridir; sağlam bataryalarla kalibre edilecek.
+ * Yanlış "zayıf" sonucunu önlemek için:
+ *   - Tam gaz kalkıştaki yükte düşme ölçülmez: yüzde voltajdan geldiği için
+ *     sağlam bataryada da gaz açınca birkaç puan düşüyor.
+ *   - Yalnızca %40–90 arasında başlanır: dolu ve boşa yakın bataryada yüzde
+ *     eğrisi doğrusal değil.
+ *   - En az 20 puan düşüş beklenir: 1 puanlık okuma hatası en çok ~%5 olur.
+ *   - Not, ölçüm belirsizliğinin batarya lehine olan ucuyla verilir.
+ *
  * Bu dosya React Native'e bağlı değildir, Node ile test edilebilir.
  */
 import { stepKm } from '../distance';
 
-export type Phase = 'idle' | 'rest1' | 'launch' | 'ride' | 'rest2' | 'done' | 'aborted';
+export type Phase = 'idle' | 'rest1' | 'ride' | 'rest2' | 'done' | 'aborted';
 
 export interface TestSettings {
-  /** Sürülecek mesafe (km). */
-  rideKm: number;
   /** Yeni bataryayla gerçek kullanım menzili (km). Etiket 25 km; gerçekte ~18. */
   referenceRangeKm: number;
-  /** Başlangıç ve bitişte durarak beklenecek süre (sn). */
+  /** Başlangıçta durarak beklenecek süre (sn). */
   rest1Sec: number;
+  /** Sürüşten sonra dinlenme süresi (sn); son REST2_SAMPLE_SEC örneklenir. */
   rest2Sec: number;
 }
 
 export const DEFAULT_SETTINGS: TestSettings = {
-  rideKm: 2,
   referenceRangeKm: 18,
-  rest1Sec: 10,
-  rest2Sec: 60,
+  rest1Sec: 20,
+  rest2Sec: 120,
 };
 
-/** Yükte düşme eşikleri (yüzde puanı). Başlangıç değerleri. */
-export const SAG_GOOD = 2;
-export const SAG_BAD = 6;
-
-/** Menzil testinde güvenilir sonuç için gereken en az düşüş (puan). */
-export const MIN_DROP_PTS = 4;
+/** Güvenilir sonuç için gereken en az düşüş (puan, dinlenmiş yüzdeyle). */
+export const MIN_DROP_PTS = 20;
+/** Başlangıç yüzdesi bu aralıkta olmalı. */
+export const START_MIN_PCT = 40;
+export const START_MAX_PCT = 90;
+/** Sağlık notu eşikleri (%). */
+export const HEALTH_GOOD = 75;
+export const HEALTH_FAIR = 55;
+const REST2_SAMPLE_SEC = 30;
+const STOP_KMH = 0.5;
 
 export type Grade = 'iyi' | 'orta' | 'zayif' | 'belirsiz';
 
 export interface TestResult {
   restPctStart: number;
-  restPctEnd: number | null;
-  sagPts: number | null;
-  sagGrade: Grade;
+  restPctEnd: number;
   rideKm: number;
-  dropPts: number | null;
+  dropPts: number;
   /** Tahmini tam şarj menzili (km) ve olası aralığı (yüzde 1 puan çözünürlükten). */
-  rangeKm: number | null;
-  rangeLowKm: number | null;
-  rangeHighKm: number | null;
-  /** Tahmini sağlık (%) = menzil / referans menzil. */
-  healthPct: number | null;
+  rangeKm: number;
+  rangeLowKm: number;
+  rangeHighKm: number;
+  /** Tahmini sağlık (%), belirsizliğin batarya lehine ucu (rangeHighKm) ile. */
+  healthPct: number;
   healthGrade: Grade;
   notes: string[];
 }
@@ -75,10 +78,6 @@ export interface Snapshot {
   result: TestResult | null;
 }
 
-const STOP_KMH = 0.5;
-/** Kalkış penceresi: hız 1 km/h'yi geçtikten sonra bu kadar süre en düşük yüzde aranır. */
-const LAUNCH_WINDOW_MS = 6000;
-
 function median(xs: number[]): number {
   const s = [...xs].sort((a, b) => a - b);
   const m = Math.floor(s.length / 2);
@@ -93,12 +92,18 @@ export class BatteryTester {
   settings: TestSettings;
   private phase: Phase = 'idle';
   private phaseStart = 0;
-  private stillSince: number | null = null;
   private restSamples: number[] = [];
   private restPctStart: number | null = null;
-  private launchStart: number | null = null;
-  private launchMinPct: number | null = null;
-  private sagPts: number | null = null;
+  /** Son dinlenmede toparlanmış ama yetersiz kalan düşüş (bilgi için). */
+  private lastRestDrop: number | null = null;
+  /** Sürüşte canlı düşüş hedefe ulaştı: "DUR" talimatı sabit kalsın. */
+  private stopAsked = false;
+  /**
+   * Sürüşte "DUR" denecek canlı düşüş. Canlı yüzde yükte sarktığı için
+   * dinlenince toparlanabilir; o zaman hedef eksik kalan puan kadar artar.
+   */
+  private liveTarget = MIN_DROP_PTS;
+  private liveAtStop = 0;
   private rideKm = 0;
   private lastT: number | null = null;
   private lastSpeed = 0;
@@ -113,12 +118,12 @@ export class BatteryTester {
   start(now: number): void {
     this.phase = 'rest1';
     this.phaseStart = now;
-    this.stillSince = null;
     this.restSamples = [];
     this.restPctStart = null;
-    this.launchStart = null;
-    this.launchMinPct = null;
-    this.sagPts = null;
+    this.lastRestDrop = null;
+    this.stopAsked = false;
+    this.liveTarget = MIN_DROP_PTS;
+    this.liveAtStop = 0;
     this.rideKm = 0;
     this.lastT = null;
     this.result = null;
@@ -131,9 +136,14 @@ export class BatteryTester {
 
   /** Bağlantı koptuğunda testi geçersiz say. */
   abort(reason: string): void {
-    if (this.phase === 'idle' || this.phase === 'done') return;
+    if (this.phase === 'idle' || this.phase === 'done' || this.phase === 'aborted') return;
     this.phase = 'aborted';
     this.abortReason = reason;
+  }
+
+  /** Canlı düşüş (yükte okunan yüzdeyle, dinlenmiş değerden fazla olabilir). */
+  private liveDrop(): number | null {
+    return this.restPctStart != null && this.lastPct != null ? this.restPctStart - this.lastPct : null;
   }
 
   /** Her telemetri paketinde çağır. */
@@ -143,18 +153,12 @@ export class BatteryTester {
     if (pctValid) this.lastPct = batteryPct;
 
     // Mesafe: yamuk kuralıyla hız × zaman. Bağlantı boşlukları atlanır.
-    if (this.lastT != null && (this.phase === 'launch' || this.phase === 'ride')) {
+    if (this.lastT != null && (this.phase === 'ride' || this.phase === 'rest2')) {
       this.rideKm += stepKm(this.lastSpeed, v, now - this.lastT);
     }
     this.lastT = now;
     this.lastSpeed = v;
-
     const still = v < STOP_KMH;
-    if (still) {
-      if (this.stillSince == null) this.stillSince = now;
-    } else {
-      this.stillSince = null;
-    }
 
     switch (this.phase) {
       case 'rest1': {
@@ -166,27 +170,28 @@ export class BatteryTester {
         }
         if (pctValid) this.restSamples.push(batteryPct as number);
         if (now - this.phaseStart >= this.settings.rest1Sec * 1000 && this.restSamples.length >= 3) {
-          this.restPctStart = median(this.restSamples);
-          this.phase = 'launch';
+          const start = median(this.restSamples);
+          if (start < START_MIN_PCT || start > START_MAX_PCT) {
+            this.phase = 'aborted';
+            this.abortReason =
+              `batarya %${start}. Test yalnızca %${START_MIN_PCT}–${START_MAX_PCT} arasında başlar` +
+              (start > START_MAX_PCT ? '; biraz sürüp tekrar dene.' : '; önce şarj et.');
+            break;
+          }
+          this.restPctStart = start;
+          this.phase = 'ride';
           this.phaseStart = now;
           this.rideKm = 0;
         }
         break;
       }
-      case 'launch': {
-        if (this.launchStart == null && v > 1) this.launchStart = now;
-        if (this.launchStart != null && pctValid) {
-          this.launchMinPct = this.launchMinPct == null ? (batteryPct as number) : Math.min(this.launchMinPct, batteryPct as number);
-        }
-        if (this.launchStart != null && now - this.launchStart >= LAUNCH_WINDOW_MS) {
-          this.sagPts = this.launchMinPct != null && this.restPctStart != null ? Math.max(0, this.restPctStart - this.launchMinPct) : null;
-          this.phase = 'ride';
-          this.phaseStart = now;
-        }
-        break;
-      }
       case 'ride': {
-        if (this.rideKm >= this.settings.rideKm && still) {
+        const d = this.liveDrop();
+        if (!this.stopAsked && d != null && d >= this.liveTarget) {
+          this.stopAsked = true;
+          this.liveAtStop = d;
+        }
+        if (this.stopAsked && still) {
           this.phase = 'rest2';
           this.phaseStart = now;
           this.restSamples = [];
@@ -195,17 +200,29 @@ export class BatteryTester {
       }
       case 'rest2': {
         if (!still) {
-          // Henüz durmadı ya da yeniden hareket etti: sürüş devam ediyor say.
+          // Yeniden hareket etti: sürüş devam ediyor say.
           this.phase = 'ride';
           this.phaseStart = now;
           this.restSamples = [];
           break;
         }
         const elapsed = now - this.phaseStart;
-        // Son 15 saniyenin örneklerini topla (voltaj toparlanmış olsun).
-        if (pctValid && elapsed >= (this.settings.rest2Sec - 15) * 1000) this.restSamples.push(batteryPct as number);
+        // Son 30 saniyenin örneklerini topla (voltaj toparlanmış olsun).
+        if (pctValid && elapsed >= (this.settings.rest2Sec - REST2_SAMPLE_SEC) * 1000) this.restSamples.push(batteryPct as number);
         if (elapsed >= this.settings.rest2Sec * 1000 && this.restSamples.length >= 3) {
-          this.finish(median(this.restSamples));
+          const end = median(this.restSamples);
+          const drop = (this.restPctStart as number) - end;
+          if (drop >= MIN_DROP_PTS) {
+            this.finish(end);
+          } else {
+            // Dinlenince yüzde toparlandı: biraz daha sür.
+            this.lastRestDrop = drop;
+            this.stopAsked = false;
+            this.liveTarget = this.liveAtStop + (MIN_DROP_PTS - drop);
+            this.phase = 'ride';
+            this.phaseStart = now;
+            this.restSamples = [];
+          }
         }
         break;
       }
@@ -217,48 +234,33 @@ export class BatteryTester {
   private finish(restPctEnd: number): void {
     const s = this.settings;
     const start = this.restPctStart as number;
+    const drop = start - restPctEnd;
     const notes: string[] = [];
 
-    const sagGrade: Grade =
-      this.sagPts == null ? 'belirsiz' : this.sagPts <= SAG_GOOD ? 'iyi' : this.sagPts >= SAG_BAD ? 'zayif' : 'orta';
-    if (this.sagPts == null) notes.push('Kalkışta yüzde okunamadı.');
+    const rangeKm = (this.rideKm / drop) * 100;
+    // Yüzde 1 puanlık adımlarla geliyor: gerçek düşüş (drop-1, drop+1) arasında olabilir.
+    const rangeHighKm = (this.rideKm / (drop - 1)) * 100;
+    const rangeLowKm = (this.rideKm / (drop + 1)) * 100;
+    const healthPct = Math.min(120, (rangeHighKm / s.referenceRangeKm) * 100);
+    const healthGrade: Grade = healthPct >= HEALTH_GOOD ? 'iyi' : healthPct >= HEALTH_FAIR ? 'orta' : 'zayif';
 
-    const drop = start - restPctEnd;
-    let rangeKm: number | null = null;
-    let rangeLowKm: number | null = null;
-    let rangeHighKm: number | null = null;
-    let healthPct: number | null = null;
-    let healthGrade: Grade = 'belirsiz';
-
-    if (drop <= 0) {
-      notes.push('Sürüşten sonra yüzde düşmedi. Menzil hesaplanamadı; daha uzun sürüşle tekrarla.');
-    } else {
-      rangeKm = (this.rideKm / drop) * 100;
-      // Yüzde 1 puanlık adımlarla geliyor: gerçek düşüş (drop-1, drop+1) arasında olabilir.
-      rangeHighKm = drop > 1 ? (this.rideKm / (drop - 1)) * 100 : null;
-      rangeLowKm = (this.rideKm / (drop + 1)) * 100;
-      healthPct = Math.min(120, (rangeKm / s.referenceRangeKm) * 100);
-      if (drop < MIN_DROP_PTS) {
-        notes.push(`Yüzde yalnızca ${drop} puan düştü. Sonuç kaba bir tahmin; daha isabetli sonuç için en az ${MIN_DROP_PTS} puan düşecek kadar sür.`);
-        healthGrade = 'belirsiz';
-      } else {
-        healthGrade = healthPct >= 80 ? 'iyi' : healthPct >= 60 ? 'orta' : 'zayif';
-      }
+    if (restPctEnd < 20) notes.push('Test %20 altında bitti. Boşa yakın bataryada yüzde hızlı düşer, menzil olduğundan düşük çıkabilir.');
+    if (healthGrade !== 'iyi') {
+      notes.push(
+        `Sağlık, referans menzile (${s.referenceRangeKm} km) göre hesaplanır. Bu senin scooter'ının yeni bataryayla gerçek menzili değilse sonuç yanlış olur; referansı düzeltip tekrarla.`,
+      );
+      notes.push('Soğuk hava, yüksek hız, yokuş ve ağır yük menzili düşürür. Normal koşullarda tekrarla.');
     }
-    if (start >= 95) notes.push('Test %95 üstünde başladı. Dolu bataryada yüzde ilk başta yavaş düşer, menzil olduğundan yüksek çıkabilir.');
-    if (start <= 25) notes.push('Test %25 altında başladı. Boşa yakın bataryada yüzde hızlı düşer, menzil olduğundan düşük çıkabilir.');
 
     this.result = {
       restPctStart: start,
       restPctEnd,
-      sagPts: this.sagPts,
-      sagGrade,
-      rideKm: round1(this.rideKm * 100) / 100,
+      rideKm: Math.round(this.rideKm * 100) / 100,
       dropPts: drop,
-      rangeKm: rangeKm == null ? null : round1(rangeKm),
-      rangeLowKm: rangeLowKm == null ? null : round1(rangeLowKm),
-      rangeHighKm: rangeHighKm == null ? null : round1(rangeHighKm),
-      healthPct: healthPct == null ? null : Math.round(healthPct),
+      rangeKm: round1(rangeKm),
+      rangeLowKm: round1(rangeLowKm),
+      rangeHighKm: round1(rangeHighKm),
+      healthPct: Math.round(healthPct),
       healthGrade,
       notes,
     };
@@ -271,25 +273,24 @@ export class BatteryTester {
     let progress = 0;
     switch (this.phase) {
       case 'idle':
-        instruction = 'Scooter dururken TESTİ BAŞLAT\'a bas.';
+        instruction = "Scooter dururken TESTİ BAŞLAT'a bas.";
         break;
       case 'rest1': {
         const left = Math.max(0, s.rest1Sec - Math.floor((now - this.phaseStart) / 1000));
-        instruction = this.stillSince == null ? 'Dur ve kıpırdama. Başlangıç yüzdesi okunuyor.' : `Dur, kıpırdama. Başlangıç yüzdesi okunuyor… ${left} sn`;
+        instruction = `Dur, kıpırdama. Başlangıç yüzdesi okunuyor… ${left} sn`;
         progress = Math.min(1, (now - this.phaseStart) / (s.rest1Sec * 1000));
         break;
       }
-      case 'launch':
-        instruction = this.launchStart == null ? 'Şimdi TAM GAZ kalk. Gazı birkaç saniye tam açık tut.' : 'Gaz tam açık, devam et…';
-        progress = this.launchStart == null ? 0 : Math.min(1, (now - this.launchStart) / LAUNCH_WINDOW_MS);
-        break;
-      case 'ride':
+      case 'ride': {
+        const d = Math.max(0, this.liveDrop() ?? 0);
+        const again = this.lastRestDrop != null ? `Dinlenince ${this.lastRestDrop} puanda kaldı. ` : '';
         instruction =
-          this.rideKm >= s.rideKm
-            ? 'Mesafe tamam. Güvenli bir yerde DUR ve bekle.'
-            : `Normal sürüşe devam et: ${this.rideKm.toFixed(2)} / ${s.rideKm} km`;
-        progress = Math.min(1, this.rideKm / s.rideKm);
+          this.stopAsked
+            ? `${again}Yüzde ${MIN_DROP_PTS} puan düştü. Güvenli bir yerde DUR ve bekle.`
+            : `${again}Normal sürüşe devam et. Düşüş: ${d} / ${this.liveTarget} puan · ${this.rideKm.toFixed(2)} km`;
+        progress = this.stopAsked ? 1 : Math.min(1, d / this.liveTarget);
         break;
+      }
       case 'rest2': {
         const left = Math.max(0, s.rest2Sec - Math.floor((now - this.phaseStart) / 1000));
         instruction = `Dur ve bekle, batarya dinleniyor… ${left} sn`;
@@ -301,7 +302,7 @@ export class BatteryTester {
         progress = 1;
         break;
       case 'aborted':
-        instruction = 'Test yarıda kaldı: ' + this.abortReason;
+        instruction = 'Test yapılamadı: ' + this.abortReason;
         break;
     }
     return {
@@ -326,16 +327,10 @@ export function gradeLabel(g: Grade): string {
 export function resultText(r: TestResult, settings: TestSettings): string {
   const lines = [
     'Ducati PRO-I batarya testi (Bluetooth)',
-    `Başlangıç / bitiş yüzdesi: %${r.restPctStart} / %${r.restPctEnd ?? '-'}`,
-    `Yükte düşme: ${r.sagPts ?? '-'} puan (${gradeLabel(r.sagGrade)})`,
-    `Sürülen mesafe: ${r.rideKm.toFixed(2)} km, düşüş: ${r.dropPts ?? '-'} puan`,
-    r.rangeKm != null
-      ? `Tahmini tam şarj menzili: ${r.rangeKm} km` +
-        (r.rangeLowKm != null && r.rangeHighKm != null ? ` (olası aralık ${r.rangeLowKm}–${r.rangeHighKm} km)` : '')
-      : 'Tahmini menzil: hesaplanamadı',
-    r.healthPct != null
-      ? `Tahmini sağlık: %${r.healthPct} (${gradeLabel(r.healthGrade)}), referans ${settings.referenceRangeKm} km`
-      : 'Tahmini sağlık: hesaplanamadı',
+    `Başlangıç / bitiş yüzdesi (dinlenmiş): %${r.restPctStart} / %${r.restPctEnd}`,
+    `Sürülen mesafe: ${r.rideKm.toFixed(2)} km, düşüş: ${r.dropPts} puan`,
+    `Tahmini tam şarj menzili: ${r.rangeKm} km (olası aralık ${r.rangeLowKm}–${r.rangeHighKm} km)`,
+    `Tahmini sağlık: %${r.healthPct} (${gradeLabel(r.healthGrade)}), referans ${settings.referenceRangeKm} km`,
     ...r.notes.map((n) => 'Not: ' + n),
   ];
   return lines.join('\n');

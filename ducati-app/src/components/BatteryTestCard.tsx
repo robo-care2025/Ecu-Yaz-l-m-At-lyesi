@@ -6,7 +6,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Share } from 'react-native';
 import { Telemetry } from '../ble/telemetry';
-import { BatteryTester, Grade, Snapshot, gradeLabel, resultText } from '../battery/batteryTest';
+import {
+  BatteryTester,
+  Grade,
+  Snapshot,
+  gradeLabel,
+  resultText,
+  MIN_DROP_PTS,
+  START_MIN_PCT,
+  START_MAX_PCT,
+} from '../battery/batteryTest';
 
 const RED = '#E2001A';
 const MUTED = '#8A8A8E';
@@ -27,7 +36,6 @@ function num(s: string): number {
 export function BatteryTestCard({ tele, connected }: { tele: Telemetry | null; connected: boolean }) {
   const testerRef = useRef(new BatteryTester());
   const [snap, setSnap] = useState<Snapshot>(() => testerRef.current.snapshot(Date.now()));
-  const [rideKm, setRideKm] = useState('2');
   const [refKm, setRefKm] = useState('18');
 
   // Her telemetri paketini teste ver.
@@ -52,9 +60,7 @@ export function BatteryTestCard({ tele, connected }: { tele: Telemetry | null; c
 
   function start() {
     const t = testerRef.current;
-    const r = num(rideKm);
     const ref = num(refKm);
-    if (r > 0) t.settings.rideKm = r;
     if (ref > 0) t.settings.referenceRangeKm = ref;
     t.start(Date.now());
     setSnap(t.snapshot(Date.now()));
@@ -85,14 +91,11 @@ export function BatteryTestCard({ tele, connected }: { tele: Telemetry | null; c
       {!running && (
         <>
           <Text style={styles.help}>
-            Dururken başlangıç yüzdesi okunur, tam gaz kalkışta yüzdenin ne kadar düştüğüne bakılır, sonra kısa bir
-            sürüşle tahmini menzil ve sağlık hesaplanır. En iyi sonuç %30–90 arası şarjda alınır.
+            Dururken başlangıç yüzdesi okunur, yüzde {MIN_DROP_PTS} puan düşene kadar normal sürülür (yaklaşık 4 km),
+            durup 2 dakika dinlendikten sonra tahmini menzil ve sağlık hesaplanır. Batarya %{START_MIN_PCT}–
+            {START_MAX_PCT} arasındayken başlat. Referans menzil, bu scooter'ın yeni bataryayla gerçek menzili olmalı.
           </Text>
           <View style={styles.inputs}>
-            <View style={styles.field}>
-              <Text style={styles.label}>SÜRÜŞ (km)</Text>
-              <TextInput style={styles.input} value={rideKm} onChangeText={setRideKm} keyboardType="decimal-pad" />
-            </View>
             <View style={styles.field}>
               <Text style={styles.label}>REFERANS MENZİL (km)</Text>
               <TextInput style={styles.input} value={refKm} onChangeText={setRefKm} keyboardType="decimal-pad" />
@@ -130,25 +133,19 @@ export function BatteryTestCard({ tele, connected }: { tele: Telemetry | null; c
           <View style={styles.tiles}>
             <View style={styles.tile}>
               <Text style={styles.label}>TAHMİNİ SAĞLIK</Text>
-              <Text style={[styles.big, { color: gradeColor(r.healthGrade) }]}>
-                {r.healthPct != null ? `%${r.healthPct}` : '--'}
-              </Text>
+              <Text style={[styles.big, { color: gradeColor(r.healthGrade) }]}>%{r.healthPct}</Text>
               <Text style={styles.small}>{gradeLabel(r.healthGrade)}</Text>
             </View>
             <View style={styles.tile}>
-              <Text style={styles.label}>YÜKTE DÜŞME</Text>
-              <Text style={[styles.big, { color: gradeColor(r.sagGrade) }]}>
-                {r.sagPts != null ? `${r.sagPts} puan` : '--'}
+              <Text style={styles.label}>TAHMİNİ MENZİL</Text>
+              <Text style={styles.big}>{r.rangeKm} km</Text>
+              <Text style={styles.small}>
+                {r.rangeLowKm}–{r.rangeHighKm} km
               </Text>
-              <Text style={styles.small}>{gradeLabel(r.sagGrade)}</Text>
             </View>
           </View>
           <Text style={styles.line}>
-            Tahmini menzil: {r.rangeKm != null ? `${r.rangeKm} km` : '--'}
-            {r.rangeLowKm != null && r.rangeHighKm != null ? `  (${r.rangeLowKm}–${r.rangeHighKm})` : ''}
-          </Text>
-          <Text style={styles.line}>
-            %{r.restPctStart} → %{r.restPctEnd} · {r.rideKm.toFixed(2)} km sürüldü
+            %{r.restPctStart} → %{r.restPctEnd} ({r.dropPts} puan) · {r.rideKm.toFixed(2)} km sürüldü
           </Text>
           {r.notes.map((n, i) => (
             <Text key={i} style={styles.note}>
@@ -188,7 +185,7 @@ const styles = StyleSheet.create({
   result: { marginTop: 4 },
   tiles: { flexDirection: 'row', gap: 10, marginBottom: 10 },
   tile: { flex: 1, backgroundColor: '#0F0F11', borderWidth: 1, borderColor: BORDER, borderRadius: 12, padding: 12 },
-  big: { fontSize: 26, fontWeight: '900', marginTop: 4 },
+  big: { color: '#fff', fontSize: 26, fontWeight: '900', marginTop: 4 },
   small: { color: MUTED, fontSize: 12, fontWeight: '700' },
   line: { color: '#C9C9CE', fontSize: 13, marginBottom: 3 },
   note: { color: '#F5A623', fontSize: 12, lineHeight: 17, marginTop: 4 },
