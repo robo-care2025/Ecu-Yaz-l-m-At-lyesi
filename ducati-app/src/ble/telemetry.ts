@@ -18,7 +18,11 @@
  *
  * HIZ: 16-bit = idx2 + idx3*256, km/h = deger / 10.
  *      20 km/h -> idx2=200,idx3=0 (=200); 30 km/h -> idx2=0x2c,idx3=1 (=300).
- *      idx12 hıza DAHİL DEĞİL (kilometre sayacı).
+ *      idx12 hıza DAHİL DEĞİL (sürüş süresi).
+ * TOPLAM KM: idx4 + idx5*256 (km). Orijinal uygulama scooter'dan yalnızca bu
+ *      çerçeveyi alıyor; günler arasında artan tek açıklanmamış bayt idx4
+ *      (13.10: 5, 13.10 akşam: 17, 14.10: 36; şarjda sıfırlanmıyor).
+ *      Scooter ekranı / orijinal uygulama ile karşılaştırıp doğrula.
  * BATARYA: idx8 = yüzde (tüm kaptürlerde 0x64=100, şarjda). Düşük şarjda doğrula.
  */
 
@@ -45,6 +49,7 @@ export interface Telemetry {
   moving: boolean;
   rideSeconds: number | null;
   rideTime: string;
+  odoKm: number | null;
   fault: boolean;
   faultCode: number;
   raw: string;
@@ -82,6 +87,7 @@ export function parseTelemetry(bytes: Uint8Array): Telemetry {
       moving: false,
       rideSeconds: null,
       rideTime: '--',
+      odoKm: null,
       fault: false,
       faultCode: 0,
       raw: hex(bytes),
@@ -107,6 +113,7 @@ export function parseTelemetry(bytes: Uint8Array): Telemetry {
     moving: (bytes[11] & 0x08) !== 0,
     rideSeconds,
     rideTime: formatRideTime(rideSeconds),
+    odoKm: bytes[4] | (bytes[5] << 8),
     // Arıza tespiti: doğrulanmış kod eşlemesi yok. Önceki sezgisel
     // (bytes[5]||[7]||[10]) sağlam scooter'da yanlış "Arıza 0x3d" veriyordu.
     // Gerçek arıza durumu yakalanıp kodu doğrulanana kadar devre dışı.
