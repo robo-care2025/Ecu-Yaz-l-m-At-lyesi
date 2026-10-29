@@ -7,7 +7,7 @@
  *     idx9  : STATE  durum baytı
  *     idx11 : F11  0x20/0x28 (0x08 biti hareket göstergesi gibi)
  *     idx12 : SPH  hız/rpm yüksek byte
- *     idx14 : CK = (STATE + 0x60) & 0xFF   (STATE kontrolü)
+ *     idx14 : CK = idx2 ^ idx3 ^ ... ^ idx13  (XOR; 4 kayıtta 3534 paketin hepsinde doğru)
  *
  * STATE baytı:
  *   bit 0x01/0x02 (& 0x03) = sürüş modu (1/2/3)
@@ -89,12 +89,13 @@ export function parseTelemetry(bytes: Uint8Array): Telemetry {
   }
   const rideSeconds = bytes[12] | (bytes[13] << 8);
   const state = bytes[9];
-  const ck = bytes[14];
+  let xor = 0;
+  for (let i = 2; i <= 13; i++) xor ^= bytes[i];
   const speedRaw = bytes[2] | (bytes[3] << 8);
   return {
     state,
     stateHex: `0x${state.toString(16).padStart(2, '0')}`,
-    stateChecksumOk: ((state + 0x60) & 0xff) === ck,
+    stateChecksumOk: xor === bytes[14],
     mode: state & 0x03,
     batteryPct: bytes[8],
     cruiseOn: (state & 0x04) !== 0,
