@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import ChatAssistant from "@/components/ChatAssistant";
 import Image from "next/image";
 
 const WHATSAPP_NUMBER = "905356471111";
@@ -31,6 +32,7 @@ export default function HomePage() {
     symptom: "",
     details: "",
   });
+  const [chatOpen, setChatOpen] = useState(false);
 
   const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
@@ -156,7 +158,7 @@ export default function HomePage() {
         <h4 className="text-2xl font-semibold mb-6">Nasıl Çalışıyoruz?</h4>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            ["1", "Ön teşhis formunu doldurun", "Cihazınızı ve arızanın belirtisini birkaç adımda anlatın."],
+            ["1", "Arızayı bize anlatın", "Ön teşhis formunu doldurun veya yapay zekâ asistanımızla konuşun."],
             ["2", "Fiyat bilgisi alın", "WhatsApp üzerinden size tahmini fiyat ve süre bildirelim."],
             ["3", "Bataryanızı gönderin", "İstanbul içinden elden ya da kargoyla. Gönderim koşullarını WhatsApp'tan öğrenebilirsiniz."],
             ["4", "Test edilmiş bataryanızı teslim alın", "Onarım sonrası ölçüm ve yük testlerinden geçen bataryanız size ulaşır."],
@@ -219,6 +221,13 @@ export default function HomePage() {
                 Arıza belirtisini seçtiğinizde olası sebepler burada görünecek.
               </div>
             )}
+            <div className="p-4 rounded border border-gray-800">
+              <p className="font-semibold mb-2">Yapay zekâ asistanına sorun</p>
+              <p className="text-gray-400 mb-4">
+                Arızayı yazın veya fotoğrafını gönderin. Asistanımız birkaç soruyla olası sebepleri anlatsın, sonra bilgileri tek tıkla ustamıza iletin.
+              </p>
+              <Button onClick={() => setChatOpen(true)} className="bg-orange-500 hover:bg-orange-600">Asistanla Konuş</Button>
+            </div>
           </div>
         </div>
       </section>
@@ -245,6 +254,8 @@ export default function HomePage() {
       <footer className="p-4 text-center text-gray-500 text-sm border-t border-gray-800">
         © 2025 ECU Yazılım Atölyesi. Tüm hakları saklıdır.
       </footer>
+
+      <ChatAssistant open={chatOpen} onOpenChange={setChatOpen} whatsappNumber={WHATSAPP_NUMBER} />
     </div>
   );
 }
