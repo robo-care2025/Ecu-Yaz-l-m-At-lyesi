@@ -275,8 +275,8 @@ export default function HomePage() {
           </form>
           <div className="text-gray-300 space-y-2">
             <p><strong>Adres:</strong> İstanbul, Türkiye</p>
-            <p><strong>Telefon:</strong> +90 555 555 55 55</p>
-            <p><strong>E-posta:</strong> info@ecuyazilimatolyesi.com</p>
+            <p><strong>Telefon:</strong> <a className="text-orange-400" href="tel:+905356471111">0535 647 11 11</a></p>
+            <p><strong>E-posta:</strong> <a className="text-orange-400" href="mailto:technology_repair@outlook.com">technology_repair@outlook.com</a></p>
             <p><strong>WhatsApp:</strong> <a className="text-orange-400" href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank">0535 647 11 11</a></p>
           </div>
         </div>
