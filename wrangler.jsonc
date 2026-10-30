@@ -1,0 +1,10 @@
+// Cloudflare Workers ayarı: "npm run build" ile üretilen out/ klasöründeki statik site yayınlanır.
+// "name", Cloudflare panelindeki Worker adıyla aynı olmalı.
+{
+  "name": "ecu-yaz-l-m-at-lyesi",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./out",
+    "not_found_handling": "404-page"
+  }
+}

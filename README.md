@@ -19,18 +19,19 @@ Sitede neler var:
 | Sohbet penceresinin görünümü | `components/ChatAssistant.jsx` |
 | Logo | `public/logo.png` (şu an geçici, kendi logonuzla değiştirin) |
 
-## Ücretsiz yayına alma (Cloudflare Pages)
+## Ücretsiz yayına alma (Cloudflare Workers)
 
-Asistan kapalıyken site, sunucu gerektirmeyen statik dosyalardan oluşur (`npm run build` komutu `out/` klasörünü üretir). Bu hâliyle Cloudflare Pages'in ücretsiz planında yayınlanabilir: trafik limiti yoktur ve adres `proje-adi.pages.dev` şeklindedir. Kendi alan adınızı (örneğin `.com`) bağlamak isteğe bağlıdır ve alan adı ücretlidir.
+Asistan kapalıyken site, sunucu gerektirmeyen statik dosyalardan oluşur (`npm run build` komutu `out/` klasörünü üretir). Cloudflare'in ücretsiz planında statik dosya istekleri ücretsiz ve sınırsızdır. Site `proje-adi.<hesap-adi>.workers.dev` gibi bir adreste yayınlanır. Kendi alan adınızı (örneğin `.com`) bağlamak isteğe bağlıdır ve alan adı ücretlidir.
+
+Yayın ayarları `wrangler.jsonc` dosyasındadır. Oradaki `name` değeri Cloudflare panelindeki Worker adıyla aynı olmalı.
 
 1. [dash.cloudflare.com](https://dash.cloudflare.com) adresinde ücretsiz hesap açın.
-2. **Workers & Pages → Create → Pages → Connect to Git** yolunu izleyin, GitHub hesabınızı bağlayıp bu depoyu seçin.
-3. **Production branch** olarak sitenin güncel hâlinin bulunduğu dalı seçin.
-4. Derleme ayarları:
-   - **Framework preset:** Next.js (Static HTML Export)
+2. **Workers & Pages → Create** yolunu izleyin, GitHub hesabınızı bağlayıp bu depoyu seçin.
+3. Worker'ın **Settings → Build** bölümünde:
+   - **Production branch:** sitenin güncel hâlinin bulunduğu dal
    - **Build command:** `npm run build`
-   - **Build output directory:** `out`
-5. **Save and Deploy** düğmesine basın. Birkaç dakika sonra site yayında olur. Bu dala gönderilen her değişiklik siteyi otomatik günceller.
+   - **Deploy command:** `npx wrangler deploy`
+4. Derlemeyi başlatın. Birkaç dakika sonra site yayında olur. Bu dala gönderilen her değişiklik siteyi otomatik günceller.
 
 Menü adları Cloudflare panelinde zamanla biraz değişebilir.
 
