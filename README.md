@@ -6,7 +6,7 @@ Sitede neler var:
 
 - Hizmetler, scooter batarya onarımı bölümü ve iletişim bilgileri
 - **Batarya ön teşhis formu:** Müşterinin bilgilerini hazır bir WhatsApp mesajı olarak gönderir.
-- **Yapay zekâ asistanı:** Sağ alttaki düğmeyle açılır. Müşteriyle konuşup arızayı anlar, fotoğrafları değerlendirir, olası sebepleri anlatır ve konuşmanın özetini tek tıkla WhatsApp'tan ustaya iletir. **Fiyat vermez.**
+- **Yapay zekâ asistanı:** Sağ alttaki düğmeyle açılır. Müşteriyle konuşup arızayı anlar, fotoğrafları değerlendirir, olası sebepleri anlatır ve konuşmanın özetini tek tıkla WhatsApp'tan teknisyene iletir. **Fiyat vermez.**
 
 ## Neyi nereden değiştiririm?
 

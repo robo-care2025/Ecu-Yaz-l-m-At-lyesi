@@ -147,7 +147,7 @@ export default function ChatAssistant({ open, onOpenChange, whatsappNumber }) {
       <div className="flex items-center justify-between border-b border-gray-800 bg-gray-900 px-4 py-3">
         <div>
           <p className="font-semibold text-orange-400">Ön Teşhis Asistanı</p>
-          <p className="text-xs text-gray-400">Fiyat ve kesin teşhis ustamızdan</p>
+          <p className="text-xs text-gray-400">Fiyat ve kesin teşhis teknisyenimizden</p>
         </div>
         <button
           onClick={() => onOpenChange(false)}
@@ -178,7 +178,7 @@ export default function ChatAssistant({ open, onOpenChange, whatsappNumber }) {
         {error && <p className="text-sm text-red-400">{error}</p>}
         {handoffText && (
           <div className="space-y-3 rounded-lg border border-green-600 bg-gray-900 p-3 text-sm">
-            <p className="font-semibold text-green-400">Ustamıza gidecek mesaj hazır:</p>
+            <p className="font-semibold text-green-400">Teknisyenimize gidecek mesaj hazır:</p>
             <p className="whitespace-pre-wrap text-gray-300">{handoffText}</p>
             <a
               href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(handoffText)}`}

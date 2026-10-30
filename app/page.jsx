@@ -224,7 +224,7 @@ export default function HomePage() {
             <div className="p-4 rounded border border-gray-800">
               <p className="font-semibold mb-2">Yapay zekâ asistanına sorun</p>
               <p className="text-gray-400 mb-4">
-                Arızayı yazın veya fotoğrafını gönderin. Asistanımız birkaç soruyla olası sebepleri anlatsın, sonra bilgileri tek tıkla ustamıza iletin.
+                Arızayı yazın veya fotoğrafını gönderin. Asistanımız birkaç soruyla olası sebepleri anlatsın, sonra bilgileri tek tıkla teknisyenimize iletin.
               </p>
               <Button onClick={() => setChatOpen(true)} className="bg-orange-500 hover:bg-orange-600">Asistanla Konuş</Button>
             </div>
