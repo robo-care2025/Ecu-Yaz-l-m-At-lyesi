@@ -9,6 +9,9 @@ import Image from "next/image";
 
 const WHATSAPP_NUMBER = "905356471111";
 
+// Yapay zekâ asistanı sadece bu ayar "true" ise görünür (bkz. next.config.mjs)
+const ASSISTANT_ENABLED = process.env.NEXT_PUBLIC_ASSISTANT_ENABLED === "true";
+
 // Ön teşhis formunda seçilen belirtiye göre müşteriye gösterilen olası sebepler
 const SYMPTOMS = {
   "Hiç açılmıyor / çıkış vermiyor":
@@ -32,9 +35,22 @@ export default function HomePage() {
     symptom: "",
     details: "",
   });
+  const [contact, setContact] = useState({ name: "", email: "", message: "" });
   const [chatOpen, setChatOpen] = useState(false);
 
   const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
+  const updateContact = (field) => (e) => setContact({ ...contact, [field]: e.target.value });
+
+  // İletişim formunu da hazır bir WhatsApp mesajı olarak gönderir
+  const handleContactSubmit = (e) => {
+    e.preventDefault();
+    const message = [
+      `Merhaba, ben ${contact.name}.`,
+      contact.message,
+      contact.email && `E-posta: ${contact.email}`,
+    ].filter(Boolean).join("\n");
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, "_blank");
+  };
 
   // Form bilgilerini hazır bir WhatsApp mesajına çevirip açar
   const handleDiagnosisSubmit = (e) => {
@@ -55,12 +71,12 @@ export default function HomePage() {
   return (
     <div className="bg-black text-white min-h-screen font-sans">
       {/* Navbar */}
-      <header className="p-6 flex justify-between items-center border-b border-gray-800">
+      <header className="p-6 flex flex-wrap justify-between items-center gap-4 border-b border-gray-800">
         <div className="flex items-center space-x-4">
           <Image src="/logo.png" alt="ECU Yazılım Atölyesi Logo" width={40} height={40} />
-          <h1 className="text-2xl font-bold text-orange-500">ECU Yazılım Atölyesi</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-orange-500">ECU Yazılım Atölyesi</h1>
         </div>
-        <nav className="space-x-6">
+        <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm sm:text-base">
           <a href="#" className="hover:text-orange-400">Ana Sayfa</a>
           <a href="#hakkimizda" className="hover:text-orange-400">Hakkımızda</a>
           <a href="#hizmetler" className="hover:text-orange-400">Hizmetler</a>
@@ -158,7 +174,13 @@ export default function HomePage() {
         <h4 className="text-2xl font-semibold mb-6">Nasıl Çalışıyoruz?</h4>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            ["1", "Arızayı bize anlatın", "Ön teşhis formunu doldurun veya yapay zekâ asistanımızla konuşun."],
+            [
+              "1",
+              "Arızayı bize anlatın",
+              ASSISTANT_ENABLED
+                ? "Ön teşhis formunu doldurun veya yapay zekâ asistanımızla konuşun."
+                : "Ön teşhis formunu doldurun, bilgileriniz WhatsApp'tan bize ulaşsın.",
+            ],
             ["2", "Fiyat bilgisi alın", "WhatsApp üzerinden size tahmini fiyat ve süre bildirelim."],
             ["3", "Bataryanızı gönderin", "İstanbul içinden elden ya da kargoyla. Gönderim koşullarını WhatsApp'tan öğrenebilirsiniz."],
             ["4", "Test edilmiş bataryanızı teslim alın", "Onarım sonrası ölçüm ve yük testlerinden geçen bataryanız size ulaşır."],
@@ -221,13 +243,15 @@ export default function HomePage() {
                 Arıza belirtisini seçtiğinizde olası sebepler burada görünecek.
               </div>
             )}
-            <div className="p-4 rounded border border-gray-800">
-              <p className="font-semibold mb-2">Yapay zekâ asistanına sorun</p>
-              <p className="text-gray-400 mb-4">
-                Arızayı yazın veya fotoğrafını gönderin. Asistanımız birkaç soruyla olası sebepleri anlatsın, sonra bilgileri tek tıkla teknisyenimize iletin.
-              </p>
-              <Button onClick={() => setChatOpen(true)} className="bg-orange-500 hover:bg-orange-600">Asistanla Konuş</Button>
-            </div>
+            {ASSISTANT_ENABLED && (
+              <div className="p-4 rounded border border-gray-800">
+                <p className="font-semibold mb-2">Yapay zekâ asistanına sorun</p>
+                <p className="text-gray-400 mb-4">
+                  Arızayı yazın veya fotoğrafını gönderin. Asistanımız birkaç soruyla olası sebepleri anlatsın, sonra bilgileri tek tıkla teknisyenimize iletin.
+                </p>
+                <Button onClick={() => setChatOpen(true)} className="bg-orange-500 hover:bg-orange-600">Asistanla Konuş</Button>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -236,11 +260,18 @@ export default function HomePage() {
       <section id="iletisim" className="px-8 py-16 bg-gray-900">
         <h3 className="text-3xl font-bold mb-8">İletişim</h3>
         <div className="grid md:grid-cols-2 gap-6">
-          <form className="space-y-4">
-            <Input placeholder="İsim" />
-            <Input type="email" placeholder="E-posta" />
-            <textarea className="w-full p-2 rounded bg-gray-800 text-white" placeholder="Mesaj" rows={5}></textarea>
-            <Button className="bg-orange-500 hover:bg-orange-600">Gönder</Button>
+          <form className="space-y-4" onSubmit={handleContactSubmit}>
+            <Input placeholder="İsim" value={contact.name} onChange={updateContact("name")} required />
+            <Input type="email" placeholder="E-posta" value={contact.email} onChange={updateContact("email")} />
+            <textarea
+              className="w-full p-2 rounded bg-gray-800 text-white"
+              placeholder="Mesaj"
+              rows={5}
+              value={contact.message}
+              onChange={updateContact("message")}
+              required
+            ></textarea>
+            <Button type="submit" className="bg-orange-500 hover:bg-orange-600">WhatsApp ile Gönder</Button>
           </form>
           <div className="text-gray-300 space-y-2">
             <p><strong>Adres:</strong> İstanbul, Türkiye</p>
@@ -255,7 +286,9 @@ export default function HomePage() {
         © 2025 ECU Yazılım Atölyesi. Tüm hakları saklıdır.
       </footer>
 
-      <ChatAssistant open={chatOpen} onOpenChange={setChatOpen} whatsappNumber={WHATSAPP_NUMBER} />
+      {ASSISTANT_ENABLED && (
+        <ChatAssistant open={chatOpen} onOpenChange={setChatOpen} whatsappNumber={WHATSAPP_NUMBER} />
+      )}
     </div>
   );
 }
