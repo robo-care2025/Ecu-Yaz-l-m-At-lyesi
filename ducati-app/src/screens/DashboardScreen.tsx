@@ -200,7 +200,7 @@ export default function DashboardScreen() {
           <View style={styles.infoCard}>
             <Text style={styles.infoLabel}>TOPLAM</Text>
             <Text style={styles.infoValue}>
-              {tele?.odoKm ?? '--'}
+              {tele?.odoKm != null ? tele.odoKm.toFixed(1) : '--'}
               <Text style={styles.infoUnit}> km</Text>
             </Text>
             <Text style={styles.infoHint}>scooter'dan okunur</Text>
