@@ -5,7 +5,7 @@
 | Parça | Ne olduğu | Önemi |
 |---|---|---|
 | Ortadaki 20 bacaklı çip **nuvoTon MS51FB9AE** | 8051 tabanlı Nuvoton mikrodenetleyici | **ARM değil.** ST-Link bununla konuşamaz |
-| Etiketli 28 bacaklı çip "OBX-PBO+APP … 2022/03/23" | Büyük ihtimalle asıl ekran işlemcisi (yazılım burada; etiket = Bootloader + APP) | **Etiketin altındaki yazıyı okumak 1. iş** |
+| Etiketli 28 bacaklı çip "OBX-PBO+APP … 2022/03/23" | Asıl ekran işlemcisi. Etiketin altı da **Nuvoton** çıktı (logo okundu, model satırı henüz okunamadı) | Model 8051 mi (MS51/ML51) yoksa ARM mi (M031/M0xx) — ST-Link kararı buna bağlı |
 | Soldaki modül (anten çizgili) | Bluetooth (BLE) modülü | Telefon uygulaması bununla konuşuyor |
 | `5V TX RST RX GND` deliği | Seri port + reset: programlama / servis portu | USB-TTL buraya bağlanır |
 | Alttaki 5 delik | Motor sürücüsüne giden kablo | Asıl veri trafiği burada |
@@ -67,6 +67,15 @@ Uygulamanın gönderdiği komutlar çoğu zaman seri hattaki komutların aynıs�
 Bu bilgiyle ileride kendi telefon uygulamanı yapabilirsin.
 
 ## 5. Etiketin altı ARM/STM8 çıkarsa: ST-Link ile deneme
+
+> **Güncel durum:** Etiketin altında Nuvoton logosu var. Model satırına göre:
+> - `MS51…`, `ML51…`, `N76…` → 8051, **ST-Link olmaz**, Nu-Link gerekir.
+> - `M031…`, `M032…`, `M0516…`, `MINI5x…`, `NUC029…` → ARM Cortex-M0, **SWD var, ST-Link + OpenOCD ile denenebilir**
+>   (`openocd -f interface/stlink.cfg -f target/numicro.cfg`). Çip "Security Lock" ile kilitliyse okuma FF döner;
+>   kilidi açmak çipi siler.
+>
+> Lazerle yazılmış yazıyı okuma ipucu: çipi alkolle temizle, üstüne tebeşir/talk pudrası sürüp sil
+> (oyuklarda kalır, yazı beyaz çıkar); ışığı yandan, çok yatık açıyla tut.
 
 1. Etiketi kaldır, çipin üstündeki yazının net fotoğrafını çek (ör. `STM32F030K6`, `GD32F130`, `STM8S105`).
 2. Datasheet'ten **SWDIO, SWCLK, NRST, VDD, GND** bacaklarını bul (STM8 için **SWIM, NRST, VDD, GND**).
