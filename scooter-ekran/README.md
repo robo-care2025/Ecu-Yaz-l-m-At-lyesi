@@ -16,6 +16,36 @@
 | Alttaki 5 delik | Motor sürücüsüne giden kablo | Asıl veri trafiği burada |
 | SOT-23 "G1" transistörler | TX/RX seviye çevirici | Hat 5V veya akü gerilimi olabilir, **önce ölç** |
 
+## 1a. MS51FB9AE bacak şeması (TSSOP-20, N76E003 ile bacak uyumlu)
+
+Üstteki **nokta = 1. bacak**. Sol sıra yukarıdan aşağı 1→10, sağ sıra aşağıdan yukarı 11→20.
+
+```
+            +-----------+
+ P0.5    1 -|o          |- 20  P0.4
+ TXD P0.6 2 -|          |- 19  P0.3
+ RXD P0.7 3 -|          |- 18  P0.2 / ICPCK   <- Nu-Link CLK
+ nRST P2.0 4 -|          |- 17  P0.1
+ P3.0    5 -|  MS51     |- 16  P0.0
+ P1.7    6 -|  FB9AE    |- 15  P1.0
+ GND     7 -|          |- 14  P1.1
+ ICPDA P1.6 8 -|        |- 13  P1.2           <- 8: Nu-Link DAT
+ VDD     9 -|          |- 12  P1.3
+ P1.5   10 -|          |- 11  P1.4
+            +-----------+
+```
+
+| Nu-Link ucu | MS51 bacağı |
+|---|---|
+| ICE_DAT | **8** (P1.6) |
+| ICE_CLK | **18** (P0.2) |
+| nRESET | **4** (P2.0) |
+| VDD | **9** |
+| GND | **7** |
+
+Not: 2 (TXD), 3 (RXD), 4 (RST) bacakları karttaki `TX RST RX` deliğiyle aynı isimde → o delik büyük ihtimalle MS51'in UART bootloader portu.
+Kaynak: N76E003AT20 pin tablosu + Nuvoton'un "MS51FB9AE, N76E003AT20 ile bacak uyumlu" açıklaması. Datasheet'ten son kontrol önerilir.
+
 ## 2. ST-Link V2 neden (büyük ihtimalle) işe yaramaz?
 
 ST-Link yalnızca iki dil bilir:
