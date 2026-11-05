@@ -46,6 +46,28 @@
 Not: 2 (TXD), 3 (RXD), 4 (RST) bacakları karttaki `TX RST RX` deliğiyle aynı isimde → o delik büyük ihtimalle MS51'in UART bootloader portu.
 Kaynak: N76E003AT20 pin tablosu + Nuvoton'un "MS51FB9AE, N76E003AT20 ile bacak uyumlu" açıklaması. Datasheet'ten son kontrol önerilir.
 
+## 1b. ✅ DOĞRULANMIŞ Nu-Link-Pro bağlantısı (multimetreyle ölçüldü)
+
+MS51 **5V** ile çalışıyor. Programlama deliği MS51'e doğrudan bağlı.
+
+| Nu-Link-Pro | Kartta nereye |
+|---|---|
+| VDD (5V) | Delik **5V** (kare pad) = MS51 bacak 9 |
+| GND | Delik **GND** = MS51 bacak 7 |
+| nRESET | Delik **RST** = MS51 bacak 4 |
+| ICE_DAT | MS51 **bacak 8** (ince tel lehimle) |
+| ICE_CLK | MS51 **bacak 18** (ince tel lehimle) |
+
+### İlk bağlantı adımları
+1. Nuvoton sitesinden **Nu-Link USB Driver** + **NuMicro ICP Programming Tool** kur.
+2. Kartın scooter kablosunu sök. Tek besleme olsun (Nu-Link 5V ya da harici 5V).
+3. ICP Tool → seri olarak **8051 1T Series** seç → **Connect**.
+4. Çip adı `MS51FB9AE` görünmeli. **Config** ekranının ekran görüntüsünü al (LOCK durumu burada).
+5. APROM'u (ve varsa LDROM'u) **oku ve .bin olarak kaydet**. Hiçbir şey yazma/silme.
+6. `python bin_incele.py yedek.bin` → kilitli mi, ayar alanı nerede, hemen söyler.
+7. Hız vb. bir ayarı ekrandan değiştirip **tekrar oku**, sonra:
+   `python bin_incele.py once.bin sonra.bin` → ayarın tutulduğu bayt doğrudan çıkar.
+
 ## 2. ST-Link V2 neden (büyük ihtimalle) işe yaramaz?
 
 ST-Link yalnızca iki dil bilir:
