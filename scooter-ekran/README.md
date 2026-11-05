@@ -2,10 +2,15 @@
 
 ## 1. Kartta ne var? (fotoğraftan çıkanlar)
 
+> **KESİN SONUÇ:** Kartın tek işlemcisi **Nuvoton MS51FB9AE** (8051, 16 KB flash). ST-Link bu karta bağlanamaz.
+> Programlama/okuma için **Nu-Link** (Nu-Link-Me / Nu-Link2-Me) + ücretsiz **NuMicro ICP Programming Tool** gerekir.
+> Bağlantı: ICPDA = P1.6, ICPCK = P0.2, nRESET = P2.0, VDD, GND (bacak numaralarını datasheet'ten doğrula).
+> `5V TX RST RX GND` deliği büyük ihtimalle MS51'in UART ISP (bootloader) portu (etiketteki "PBO+APP" = Boot + APP).
+
 | Parça | Ne olduğu | Önemi |
 |---|---|---|
 | Ortadaki 20 bacaklı çip **nuvoTon MS51FB9AE** | 8051 tabanlı Nuvoton mikrodenetleyici | **ARM değil.** ST-Link bununla konuşamaz |
-| Etiketli 28 bacaklı çip "OBX-PBO+APP … 2022/03/23" | Asıl ekran işlemcisi. Etiketin altı da **Nuvoton** çıktı (logo okundu, model satırı henüz okunamadı) | Model 8051 mi (MS51/ML51) yoksa ARM mi (M031/M0xx) — ST-Link kararı buna bağlı |
+| Etiketli 28 bacaklı çip "OBX-PBO+APP … 2022/03/23" | **TM1668** (Titan Micro, 24 bacak): LED/segment sürücü + tuş tarayıcı. **Yazılımı yok**, MS51 onu 3 telle (DIO/CLK/STB) yönetir | Etiket sadece kartın yazılım sürüm etiketi. **Kartın tek işlemcisi MS51FB9AE** |
 | Soldaki modül (anten çizgili) | Bluetooth (BLE) modülü | Telefon uygulaması bununla konuşuyor |
 | `5V TX RST RX GND` deliği | Seri port + reset: programlama / servis portu | USB-TTL buraya bağlanır |
 | Alttaki 5 delik | Motor sürücüsüne giden kablo | Asıl veri trafiği burada |
