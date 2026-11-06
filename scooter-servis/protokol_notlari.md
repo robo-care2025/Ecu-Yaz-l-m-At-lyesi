@@ -65,6 +65,14 @@ km sadece FFF7 telemetrisinde YAYINLANIYOR; yazılabilir komut yok.
 - Sonuç: bu protokolde km yazma komutu yok; BLE ile km değiştirilemez.
 - Kalan tek teknik yol: Nu-Link ile Nuvoton (flash kilitli değilse).
 
+### ⚠️ UYARI: FFF2/FFF3 = BLE modülü isim/config kanalı
+- Test 3'te `5A B9...` karesini yazınca cihaz ADI "Z�" oldu (0x5A='Z',
+  0xB9=geçersiz). Uygulama ismine göre aradığı için bağlanamadı.
+- **FFF3 = cihaz adı (device name) kanalı** (FFF3'e yazınca düzeldi).
+- Düzeltme: FFF3'e → `44 55 43 41 54 49 20 45 56 4F` ("DUCATI EVO").
+- DERS: FFF3'e (ve muhtemelen FFF2'ye) gelişigüzel yazma = isim/config bozar.
+  (FFF6 = komut, FFF7 = telemetri, FFF1 = pasif bayt, FFF5 = "000000".)
+
 ### Açık mimari sorusu: km nerede saklanıyor?
 - Yeni ekran takılınca 265.7 gösterirse → km KONTROLCÜDE, sorun yok.
 - 0 gösterirse → km EKRANIN Nuvoton'unda; yazmak için:
