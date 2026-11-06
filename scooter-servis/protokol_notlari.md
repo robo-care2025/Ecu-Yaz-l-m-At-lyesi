@@ -21,7 +21,12 @@
 idx:  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
 A  : 5A B9 25 01 61 0A 00 00 64 07 00 28 06 00 02 95   (11:34)
 B  : 5A B9 00 00 61 0A 00 00 64 07 00 20 00 00 28 95   (11:33)
+C  : 5A B9 00 00 61 0A 00 00 64 07 00 20 0C 00 24 95   (11:42)
 ```
+- FFF6 READ → boş döndü (yazma karakteristiği; normal). km yazma komutu
+  HCI log / APK'dan çıkarılacak.
+- idx14 (A=02,B=28,C=24) + idx15 (hep 95): write-checksum birkaç kareden
+  analitik çözülemedi; gerçek yazma örneği (HCI) gerekiyor.
 - Başlık sabit: `5A B9`
 - Değişen baytlar (canlı): idx2-3, idx11, idx12, idx14
 - Sabit baytlar: idx4-5 (`0A61`=2657), idx8-9 (`0764`=1892), idx15 (`95`)
