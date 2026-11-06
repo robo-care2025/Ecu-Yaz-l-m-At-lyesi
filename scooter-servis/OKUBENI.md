@@ -4,58 +4,49 @@
 kilometresine **eşitlemek** (belgeli kalibrasyon). Keyfî düşürme/sahtecilik
 değil — her işlem loglanır ve PIN ile korunur.
 
-## Neden önce "dinliyoruz"?
-Kartın haberleşme protokolünü (hangi bayt km, komut formatı ne, checksum
-nasıl) kimse ezbere bilemez. Önce test cihazından **ham veriyi yakalayıp**
-km'nin yerini buluyoruz. Ancak ondan sonra güvenle yazma komutu yazılır.
-Tahminle yazma komutu göndermek kartı **bozabilir** — o yüzden sırayı
-atlamıyoruz.
+## Bilinenler (test cihazı)
+- Haberleşme: **BLE** (telefon uygulaması: "Ducati")
+- Kartta **8 bacaklı EEPROM var** → km büyük ihtimalle burada
+- Eldeki aletler: **ST-LINK V2**, **CH341A** (24xx/25xx), **Pololu USB AVR Programmer v2.1** (dahili USB-TTL seri port da var)
 
-## Donanım
-- 1 adet **USB-TTL dönüştürücü** (FT232 / CP2102 / CH340) — ~30-50 TL
-- Kartın köşesindeki **GND / RX / TX / 3.3V** padleri
+## ÖNERİLEN YOL: CH341A ile EEPROM (en kısa)
 
-## Bağlantı (çapraz!)
-| USB-TTL | Kart |
-|---------|------|
-| GND     | GND  |
-| RX      | TX   |
-| TX      | RX   |
-| 3.3V    | **BAĞLAMA** (kart kendi beslemesiyle çalışsın, sadece GND ortak olsun) |
+km muhtemelen harici 24Cxx EEPROM'da. Ekranda yazan km'yi zaten bildiğimiz
+için **tek döküm** yeter:
 
-> Sadece dinlerken USB-TTL'in TX ucunu bağlamasan da olur; RX + GND yeter.
+1. **EEPROM part numarasını oku** (çipin üstü: 24C02 / 24C16 / 24C64...).
+2. **Döküm al** (CH341A):
+   - Windows: *AsProgrammer* veya *CH341A Programmer* → I2C → 24Cxx → doğru çip → **Read** → `dump.bin` kaydet.
+   - Çipi ya SOIC-8 klips ile yerinde oku, ya da sök (test cihazında sökmek en garantisi).
+3. **Ekrandaki km'yi dökümde ara:**
+   ```
+   python 04_deger_ara.py dump.bin 1240        # 1240 = ekranda yazan km
+   ```
+   Çıkan aday adres(ler)i not et.
+4. **Doğrula (opsiyonel):** 1-2 km sürüp ikinci döküm al, karşılaştır:
+   ```
+   python 03_dump_karsilastir.py dump.bin dump2.bin
+   ```
+   Aynı adreste değerin arttığını gör → adres kesinleşti.
+5. Çıktıyı **bana getir**; adresi + ölçeği + checksum'ı netleştirip güvenli
+   yazma adımını (`05_servis.py`) kuracağız. Yazarken sadece o adresi
+   değiştirip EEPROM'u geri flash'larız.
 
-## Adımlar
+## YEDEK YOL: UART dinleme (Pololu seri portu)
 
-### 1) Kurulum (bir kere)
-```
-pip install pyserial
-```
+Canlı protokolü görmek / BLE tarafını anlamak için:
+- Pololu'nun **RX ← kart TX**, **GND ↔ GND** (çapraz). 3.3V bağlama.
+- `pip install pyserial`
+- `python 01_dinleyici.py`  → kayıt al, `02_fark_bulucu.py` ile km baytını bul.
 
-### 2) Dinle
-Scooter'ı aç, mümkünse telefon uygulamasını da bağla (veri aksın), sonra:
-```
-python 01_dinleyici.py
-```
-Program portu ve hızı (baud) otomatik bulmaya çalışır. Gelen her satır bir
-veri çerçevesidir. Ctrl+C ile durdurunca `kayitlar/` içine `.log` yazılır.
-
-### 3) km'nin yerini bul
-- Önce km=X iken ~10 sn kayıt al (dosya A).
-- km'yi değiştir (biraz sür veya uygulamadan değiştir), tekrar kayıt al (dosya B).
-- Farkı bul:
-```
-python 02_fark_bulucu.py kayitlar/dosyaA.log kayitlar/dosyaB.log
-```
-Çıktıdaki "DEGISEN KONUMLAR" km baytlarının yeridir.
-
-### 4) Bana getir
-`02_fark_bulucu.py` çıktısını ve birkaç ham çerçeveyi bana yapıştır.
-Birlikte:
-- km'nin kaç bayt / hangi sırada (little/big-endian) olduğunu,
-- checksum (sağlama) hesabını,
-- **yazma (set) komutunu**
-çıkaracağız. Sonra 3 güvenlikli servis programını (`03_servis.py`) yazacağım.
+## Araçlar
+| Dosya | İş |
+|-------|----|
+| `01_dinleyici.py` | UART ham veri yakalama (sadece okur) |
+| `02_fark_bulucu.py` | İki UART kaydını kıyasla, km baytını bul |
+| `03_dump_karsilastir.py` | İki binary dökümü kıyasla (EEPROM/flash) |
+| `04_deger_ara.py` | Tek dökümde bilinen km değerini ara |
+| `05_servis.py` | *(sonra)* PIN + log + güvenli km eşitleme |
 
 ## Güvenlik kuralları (ürünü "servis cihazı" yapan şey)
 1. **Gerçek değere eşitleme** — aracın bilinen gerçek km'si girilir.
