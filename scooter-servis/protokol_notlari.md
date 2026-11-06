@@ -56,6 +56,15 @@ BLE protokolü yalnızca mod/far/kilit/cruise kontrol ediyor (yük = 2 bayt).
 km sadece FFF7 telemetrisinde YAYINLANIYOR; yazılabilir komut yok.
 → Mevcut BLE ile km değiştirilemez.
 
+### BLE km-yazma DENENDI → MÜMKÜN DEĞİL (nRF Connect, test cihazı)
+- km EKRANDA saklı (yeni ekran 0 gösterdi → kontrolcüde değil).
+- FFF1'e 0x01 yazıldı: FFF2/FFF3 boş kaldı → register seçici DEĞİL.
+- FFF1/FFF2/FFF3 pasif kutu: ne yazılırsa geri okunuyor, km'ye etkisiz.
+- Değiştirilmiş telemetri karesi (km=500=`88 13`) FFF1/2/3'e yazıldı →
+  FFF7'de km `61 0A`=265.7 DEĞİŞMEDİ.
+- Sonuç: bu protokolde km yazma komutu yok; BLE ile km değiştirilemez.
+- Kalan tek teknik yol: Nu-Link ile Nuvoton (flash kilitli değilse).
+
 ### Açık mimari sorusu: km nerede saklanıyor?
 - Yeni ekran takılınca 265.7 gösterirse → km KONTROLCÜDE, sorun yok.
 - 0 gösterirse → km EKRANIN Nuvoton'unda; yazmak için:
