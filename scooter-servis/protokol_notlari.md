@@ -36,6 +36,32 @@ C  : 5A B9 00 00 61 0A 00 00 64 07 00 20 0C 00 24 95   (11:42)
 - idx8-9 (`0764`=1892) → ayrı bir sayaç (henüz belirsiz; km değil)
 - idx15=95 sabit; basit toplam-checksum değil gibi (write checksum HCI/APK'dan gelecek)
 
+## ÇÖZÜLEN PROTOKOL (PR #1 / branch claude/ducati-pro-ble-data-km4w4c)
+Önceki oturumun çözdüğü, doğrulanmış protokol:
+
+### Komut (telefon → scooter, char FFF6, 8 bayt)
+```
+CA AC BD [B3] [B4] [CK5] [CK6] 6A
+  CK5 = (B3 XOR B4 XOR 0xBD) & 0xFF
+  CK6 = (CK5 + B3 - 0x43) & 0xFF
+```
+7 komutta doğrulandı, sabit/şifresiz (replay çalışır). Bilinen:
+- ECO:  `ca ac bd 00 00 bd 7a 6a`
+- COMFORT: `ca ac bd 00 01 bc 79 6a`
+- SPORT: `ca ac bd 04 01 b8 79 6a`
+- bayraklar (aktif modun B4'üne OR): cruise 0x02, far 0x18, kilit 0x40
+
+### ⚠️ km YAZMA komutu YOK
+BLE protokolü yalnızca mod/far/kilit/cruise kontrol ediyor (yük = 2 bayt).
+km sadece FFF7 telemetrisinde YAYINLANIYOR; yazılabilir komut yok.
+→ Mevcut BLE ile km değiştirilemez.
+
+### Açık mimari sorusu: km nerede saklanıyor?
+- Yeni ekran takılınca 265.7 gösterirse → km KONTROLCÜDE, sorun yok.
+- 0 gösterirse → km EKRANIN Nuvoton'unda; yazmak için:
+  (1) BLE fabrika kanalı denemesi (FFF5 şifre + FFF1/2/3 register) — düşük ihtimal
+  (2) Nu-Link ile Nuvoton (flash kilidi + firmware layout engeli) — son çare
+
 ## Açık sorular / sıradaki adımlar
 1. [x] Ekranda yazan gerçek km → **km = idx4-5, LE, ×10 (DOĞRULANDI)**
 2. [ ] Tüm karakteristikleri READ ile oku (FFF1/FFF2/FFF6 + varsa FFF3/4/5)
