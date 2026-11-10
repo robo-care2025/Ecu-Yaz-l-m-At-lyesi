@@ -12,11 +12,29 @@ ekrana gerçek km'yi yazmak. Test düzeneği: **265.7'li ekran + 0'lı ekran**.
 3. **NuMicro ICP Programming Tool**'u indir (Nuvoton resmi, ücretsiz, Windows).
    - 8051 için aynı araç içinde "8051 ICP" bölümü var.
 
-## 1. Nu-Link kablolama (çipe göre netleşecek)
-Standart Nu-Link ucu: **VDD / nRESET / ICPDAT(SWDIO) / ICPCLK(SWCLK) / GND**
-Karttaki MCU'nun ilgili pinlerine/padlerine bağlanır. Besleme: çoğu durumda
-Nu-Link 3.3V verir; kartı ayrıca besleme (çakışmayı önle). Kesin pinout çip
-adı + pad fotoğrafı gelince yazılacak.
+## 1. Nu-Link kablolama — MS51FB9AE (TSSOP20, ICP)
+**Çip TEYİTLİ: Nuvoton MS51FB9AE** → 8051, **ICP** modu (SWD değil).
+
+ICP için gereken 5 sinyal ve MS51FB9AE pinleri (datasheet Rev1.04):
+| Nu-Link | Sinyal | MS51FB9AE pini |
+|---|---|---|
+| VDD (3.3V) | besleme | **pin 9** (VDD) |
+| GND | toprak | VSS / karttaki herhangi GND pad |
+| RST | nRESET | **pin 4** (P2.0/nRESET) |
+| DAT (ICE_DAT/SWDIO) | ICPDA | **pin 8** (P1.6) |
+| CLK (ICE_CLK/SWCLK) | ICPCK | **pin 18** (P0.2) |
+
+- Pin 1 = çipteki nokta/çentik. TSSOP20: alt sıra soldan sağa 1..10,
+  üst sıra soldan sağa 20..11 (yani pin 18 = üst sıra soldan 3.).
+- DAT hattına **100kΩ pull-up** (VDD'ye) önerilir; kart/Nu-Link çoğu zaman
+  hallediyor — önce pull-up'sız dene, olmazsa ekle.
+- Besleme: kartı Nu-Link 3.3V ile besle (kartın kendi beslemesi KAPALI), GND ortak.
+- Kartta genelde bu sinyaller pad/test noktası olarak dışarı verilir
+  ("RST" padi = pin 4; yanındakiler büyük ihtimalle DAT/CLK).
+
+### NuMicro ICP Tool ayarı
+- Part No / Series: **MS51** (8-bit 1T 8051) seç.
+- Connect → okuma testi (bkz. Adım 2).
 
 ## 2. İLK KRİTİK TEST — okunabiliyor mu?
 NuMicro ICP Tool → Connect → **APROM oku**.
