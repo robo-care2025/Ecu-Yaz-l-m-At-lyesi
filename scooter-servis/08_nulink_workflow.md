@@ -32,6 +32,18 @@ ICP için gereken 5 sinyal ve MS51FB9AE pinleri (datasheet Rev1.04):
 - Kartta genelde bu sinyaller pad/test noktası olarak dışarı verilir
   ("RST" padi = pin 4; yanındakiler büyük ihtimalle DAT/CLK).
 
+### ✅ KART ICP HEADER'I TEYİTLİ (süreklilik testi ile)
+Ortadaki 5 pad (soldan sağa): **`5V · TX · RST · RX · GND`**
+Silkscreen "TX/RX" yazsa da süreklilik testiyle ICP'ye gittiği doğrulandı:
+| Pad | Sinyal | Çip pini | Nu-Link |
+|---|---|---|---|
+| RST | nRESET | pin 4 ✓ | RST |
+| TX | ICPDA (DAT) | pin 8 ✓ | DAT |
+| RX | ICPCK (CLK) | pin 18 ✓ | CLK |
+| GND | GND | — | GND |
+| 5V | VDD/besleme | — | VDD (voltaj teyit edilecek) |
+Not: "TX/RX" isimleri yanıltıcı; gerçekte ICP veri/saat hatları.
+
 ### NuMicro ICP Tool ayarı
 - Part No / Series: **MS51** (8-bit 1T 8051) seç.
 - Connect → okuma testi (bkz. Adım 2).
