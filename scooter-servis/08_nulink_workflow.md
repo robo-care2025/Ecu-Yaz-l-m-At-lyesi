@@ -44,6 +44,19 @@ Silkscreen "TX/RX" yazsa da süreklilik testiyle ICP'ye gittiği doğrulandı:
 | 5V | VDD/besleme | — | VDD (voltaj teyit edilecek) |
 Not: "TX/RX" isimleri yanıltıcı; gerçekte ICP veri/saat hatları.
 
+### ✅ NİHAİ BAĞLANTI (Nu-Link etiketi: VCC·ICE_DAT·ICE_CLK·/RESET·VSS)
+| Nu-Link kablosu | → Kart padi |
+|---|---|
+| VCC | 5V |
+| ICE_DAT | TX |
+| ICE_CLK | RX |
+| /RESET | RST |
+| VSS (GND) | GND |
+- Besleme: **Nu-Link VCC (3.3V, güvenli)** ile besle, kartın **kendi beslemesi KAPALI**.
+  (3.3V worst-case bağlanmaz = zararsız; aşırı voltaj riski yok. Bağlanmazsa
+  "5V" padi voltajını ölç, 5V gerekiyorsa ayrı konuşuruz.)
+- NuMicro ICP Tool → Chip Series **MS51** → (varsa target VCC = 3.3V) → Connect → APROM Read.
+
 ### NuMicro ICP Tool ayarı
 - Part No / Series: **MS51** (8-bit 1T 8051) seç.
 - Connect → okuma testi (bkz. Adım 2).
