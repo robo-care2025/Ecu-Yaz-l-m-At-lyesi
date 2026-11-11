@@ -1,0 +1,2 @@
+pyserial>=3.5
+anthropic>=2.8

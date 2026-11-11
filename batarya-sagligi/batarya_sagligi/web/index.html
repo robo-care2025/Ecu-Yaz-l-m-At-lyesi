@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Batarya Sağlığı</title>
+<style>
+  :root {
+    --zemin: #0e1116; --kart: #171b22; --cizgi: #262c36; --yazi: #e7eaf0; --soluk: #8b93a1;
+    --iyi: #3fb97a; --orta: #e0a43a; --zayif: #e5584f; --voltaj: #5aa9f5; --akim: #f0a04b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--zemin); color: var(--yazi);
+         font: 15px/1.45 system-ui, "Segoe UI", Roboto, sans-serif; }
+  .sayfa { max-width: 1040px; margin: 0 auto; padding: 20px 16px 48px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-bottom: 18px; }
+  h1 { font-size: 22px; margin: 0; }
+  .alt { color: var(--soluk); font-size: 13px; }
+  .nokta { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+           background: var(--zayif); margin-right: 6px; }
+  .nokta.acik { background: var(--iyi); }
+  .izgara { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .kart { background: var(--kart); border: 1px solid var(--cizgi); border-radius: 12px; padding: 14px 16px; }
+  .etiket { color: var(--soluk); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+  .deger { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .deger small { font-size: 14px; font-weight: 400; color: var(--soluk); margin-left: 3px; }
+  .not { color: var(--soluk); font-size: 12px; margin-top: 2px; min-height: 17px; }
+  .ust { display: grid; gap: 12px; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); margin-bottom: 12px; }
+  @media (max-width: 720px) { .ust { grid-template-columns: 1fr; } }
+  .hukum { font-size: 34px; font-weight: 700; }
+  .cubuk { height: 14px; border-radius: 7px; background: var(--cizgi); overflow: hidden; margin: 10px 0 4px; }
+  .cubuk > div { height: 100%; width: 0; background: var(--iyi); transition: width .4s; }
+  h2 { font-size: 14px; margin: 22px 0 8px; color: var(--soluk); font-weight: 600; }
+  canvas { width: 100%; height: 260px; display: block; }
+  .aciklama { display: flex; gap: 16px; font-size: 12px; color: var(--soluk); margin-bottom: 6px; }
+  .aciklama i { display: inline-block; width: 10px; height: 3px; vertical-align: middle; margin-right: 5px; }
+  .uyari { background: #3a1f1d; border: 1px solid #6b2f2a; border-radius: 10px;
+           padding: 10px 14px; margin-top: 8px; }
+  button { font: inherit; color: var(--yazi); background: #2a3342; border: 1px solid #3a4558;
+           border-radius: 8px; padding: 9px 16px; cursor: pointer; }
+  button:hover { background: #333e50; }
+  button:disabled { opacity: .5; cursor: wait; }
+  button.ana { background: #2c6fd1; border-color: #2c6fd1; }
+  button.ana:hover { background: #3a7ee0; }
+  .dugmeler { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 12px; }
+  #rapor { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<div class="sayfa">
+  <header>
+    <h1>Batarya Sağlığı</h1>
+    <span class="alt" id="paket">—</span>
+    <span class="alt" style="margin-left:auto"><span class="nokta" id="nokta"></span><span id="baglanti">bağlanıyor…</span></span>
+  </header>
+
+  <div class="ust">
+    <div class="kart">
+      <div class="etiket">Batarya durumu</div>
+      <div class="hukum" id="hukum">—</div>
+      <div class="not" id="hukum-not"></div>
+    </div>
+    <div class="kart">
+      <div class="etiket">Şarj seviyesi</div>
+      <div class="deger"><span id="soc">—</span><small>%</small></div>
+      <div class="cubuk"><div id="soc-cubuk"></div></div>
+      <div class="not" id="soc-not"></div>
+    </div>
+  </div>
+
+  <div class="izgara">
+    <div class="kart"><div class="etiket">Gerçek kapasite</div>
+      <div class="deger"><span id="kapasite">—</span><small>Ah</small></div><div class="not" id="kapasite-not"></div></div>
+    <div class="kart"><div class="etiket">İç direnç</div>
+      <div class="deger"><span id="direnc">—</span><small>mΩ</small></div><div class="not" id="direnc-not"></div></div>
+    <div class="kart"><div class="etiket">Voltaj</div>
+      <div class="deger"><span id="v">—</span><small>V</small></div><div class="not" id="v-not"></div></div>
+    <div class="kart"><div class="etiket">Akım</div>
+      <div class="deger"><span id="i">—</span><small>A</small></div><div class="not" id="i-not"></div></div>
+    <div class="kart"><div class="etiket">Güç</div>
+      <div class="deger"><span id="guc">—</span><small>W</small></div><div class="not" id="guc-not"></div></div>
+    <div class="kart"><div class="etiket">Sıcaklık</div>
+      <div class="deger"><span id="sicaklik">—</span><small>°C</small></div><div class="not" id="sicaklik-not"></div></div>
+  </div>
+
+  <div id="uyarilar"></div>
+
+  <h2>Voltaj ve akım</h2>
+  <div class="kart">
+    <div class="aciklama">
+      <span><i style="background:var(--voltaj)"></i>Voltaj (V, sol)</span>
+      <span><i style="background:var(--akim)"></i>Akım (A, sağ — eksi: deşarj)</span>
+    </div>
+    <canvas id="grafik"></canvas>
+  </div>
+
+  <h2>Yapay zekâ raporu</h2>
+  <div class="dugmeler">
+    <button class="ana" id="rapor-dugme">Rapor oluştur</button>
+    <button id="sifirla-dugme">Ölçümü sıfırla</button>
+  </div>
+  <div class="kart"><div class="alt" id="rapor-kaynak"></div>
+    <div id="rapor" class="alt">Ölçüm biriktikten sonra “Rapor oluştur”a basın.</div></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const yaz = (id, deger, basamak = 1) =>
+  $(id).textContent = (deger === null || deger === undefined) ? "—" : Number(deger).toFixed(basamak);
+const RENK = { "İyi": "var(--iyi)", "Orta": "var(--orta)", "Zayıf": "var(--zayif)" };
+
+function ciz(gecmis) {
+  const c = $("grafik"), oran = window.devicePixelRatio || 1;
+  const W = c.clientWidth, H = c.clientHeight;
+  c.width = W * oran; c.height = H * oran;
+  const g = c.getContext("2d");
+  g.scale(oran, oran);
+  g.clearRect(0, 0, W, H);
+  if (gecmis.length < 2) return;
+  const sol = 40, sag = 40, ust = 8, alt = 22;
+  const t0 = gecmis[0].t, t1 = gecmis[gecmis.length - 1].t;
+  const aralik = (d, pay) => { const a = Math.min(...d), b = Math.max(...d); return [a - pay, b + pay]; };
+  const [v0, v1] = aralik(gecmis.map(p => p.v), 0.5);
+  const [i0, i1] = aralik(gecmis.map(p => p.i), 1);
+  const X = t => sol + (t - t0) / (t1 - t0 || 1) * (W - sol - sag);
+  const Y = (d, a, b) => ust + (1 - (d - a) / (b - a)) * (H - ust - alt);
+
+  g.font = "11px system-ui"; g.textBaseline = "middle";
+  for (let k = 0; k <= 4; k++) {
+    const y = ust + k / 4 * (H - ust - alt);
+    g.strokeStyle = "#262c36"; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(sol, y); g.lineTo(W - sag, y); g.stroke();
+    g.fillStyle = "#5aa9f5"; g.textAlign = "right";
+    g.fillText((v1 - k / 4 * (v1 - v0)).toFixed(1), sol - 6, y);
+    g.fillStyle = "#f0a04b"; g.textAlign = "left";
+    g.fillText((i1 - k / 4 * (i1 - i0)).toFixed(0), W - sag + 6, y);
+  }
+  g.fillStyle = "#8b93a1"; g.textAlign = "center";
+  g.fillText("son " + Math.round((t1 - t0) / 60) + " dakika", W / 2, H - 8);
+
+  const cizgi = (alan, a, b, renk) => {
+    g.strokeStyle = renk; g.lineWidth = 1.6; g.beginPath();
+    gecmis.forEach((p, n) => n ? g.lineTo(X(p.t), Y(p[alan], a, b)) : g.moveTo(X(p.t), Y(p[alan], a, b)));
+    g.stroke();
+  };
+  cizgi("i", i0, i1, "#f0a04b");
+  cizgi("v", v0, v1, "#5aa9f5");
+}
+
+let sonGecmis = [];
+async function yenile() {
+  let d;
+  try { d = await (await fetch("/api/durum")).json(); }
+  catch { $("baglanti").textContent = "program çalışmıyor"; $("nokta").className = "nokta"; return; }
+
+  const a = d.anlik, s = d.saglik, o = d.oturum, p = d.paket;
+  $("paket").textContent = `${p.ad} · ${p.seri_hucre} hücre seri · ${p.nominal_kapasite_ah} Ah`;
+  $("baglanti").textContent = d.baglanti.kaynak + (d.baglanti.veri_geliyor ? "" : " — veri gelmiyor");
+  $("nokta").className = "nokta" + (d.baglanti.veri_geliyor ? " acik" : "");
+
+  $("hukum").textContent = s.etiket;
+  $("hukum").style.color = RENK[s.etiket] || "var(--soluk)";
+  $("hukum-not").textContent = s.saglik_yuzde !== null
+    ? `Sağlık %${s.saglik_yuzde} (ölçülen kapasite / etiket kapasitesi)`
+    : "Kapasite ölçümü için: doluyken dinlendir → en az %25 boşalt → tekrar dinlendir.";
+
+  yaz("kapasite", s.kapasite_ah, 2);
+  $("kapasite-not").textContent = s.kapasite_ah !== null
+    ? `etiket ${p.nominal_kapasite_ah} Ah · ${s.kapasite_olcum_sayisi} ölçüm` : "henüz ölçülmedi";
+  yaz("direnc", s.ic_direnc_mohm, 0);
+  $("direnc-not").textContent = s.ic_direnc_mohm !== null
+    ? `referansa göre %${s.ic_direnc_artis_yuzde > 0 ? "+" : ""}${s.ic_direnc_artis_yuzde}`
+    : "ani gaz/fren bekleniyor";
+
+  if (a) {
+    yaz("soc", a.soc, 0);
+    $("soc-cubuk").style.width = (a.soc || 0) + "%";
+    $("soc-cubuk").style.background = a.soc < 20 ? "var(--zayif)" : a.soc < 40 ? "var(--orta)" : "var(--iyi)";
+    $("soc-not").textContent = a.soc_tahmini
+      ? "yaklaşık değer — batarya birkaç dakika dinlenince kesinleşir" : "dinlenme voltajından doğrulandı";
+    yaz("v", a.v, 2); $("v-not").textContent = `hücre başına ${a.hucre_v.toFixed(2)} V`;
+    yaz("i", a.i, 2);
+    $("i-not").textContent = a.dinleniyor ? "dinleniyor" : a.i > 0 ? "şarj oluyor" : "deşarj oluyor";
+    yaz("guc", a.guc_w, 0); $("guc-not").textContent = `harcanan ${o.desarj_wh} Wh`;
+    yaz("sicaklik", a.sicaklik, 1);
+    $("sicaklik-not").textContent = a.sicaklik === null ? "sensör yok" : `en yüksek ${o.sicaklik_en_yuksek} °C`;
+  }
+
+  const kutu = $("uyarilar");
+  kutu.replaceChildren(...d.uyarilar.map(u => {
+    const e = document.createElement("div"); e.className = "uyari"; e.textContent = "⚠ " + u; return e;
+  }));
+  sonGecmis = d.gecmis;
+  ciz(sonGecmis);
+}
+
+$("rapor-dugme").onclick = async () => {
+  const b = $("rapor-dugme");
+  b.disabled = true; b.textContent = "Hazırlanıyor…";
+  try {
+    const r = await (await fetch("/api/rapor", { method: "POST" })).json();
+    $("rapor").className = ""; $("rapor").textContent = r.metin;
+    $("rapor-kaynak").textContent = r.kaynak === "claude"
+      ? "Claude tarafından hazırlandı" : "Basit yerel rapor" + (r.not ? " — " + r.not : "");
+  } catch { $("rapor").textContent = "Rapor alınamadı."; }
+  b.disabled = false; b.textContent = "Rapor oluştur";
+};
+$("sifirla-dugme").onclick = async () => {
+  if (confirm("Bu oturumun ölçümleri sıfırlansın mı?")) { await fetch("/api/sifirla", { method: "POST" }); yenile(); }
+};
+window.onresize = () => ciz(sonGecmis);
+yenile(); setInterval(yenile, 1000);
+</script>
+</body>
+</html>
