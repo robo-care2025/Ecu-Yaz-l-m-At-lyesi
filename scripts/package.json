@@ -1,0 +1,8 @@
+{
+  "name": "@scoot/scripts",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "vitest run", "build:error-codes": "tsx build-error-codes.ts" },
+  "dependencies": { "@scoot/shared": "*" },
+  "devDependencies": { "vitest": "^5.1.0", "tsx": "^4.20.0", "@types/node": "^22.0.0" }
+}
