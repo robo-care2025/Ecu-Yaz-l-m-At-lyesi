@@ -9,7 +9,7 @@
 <text x="146" y="510" font-family="Inter" font-weight="700" font-size="64" letter-spacing="24" fill="#8FA3BF">TAMİR MERKEZİ</text>
 <g font-family="Inter" font-weight="600" font-size="46" fill="#fff">
 <circle cx="160" cy="630" r="9" fill="#C8F53C"/><text x="190" y="646">Batarya, motor, kontrol kartı</text>
-<circle cx="160" cy="710" r="9" fill="#C8F53C"/><text x="190" y="726">Robot süpürge tamiri</text>
+<circle cx="160" cy="710" r="9" fill="#C8F53C"/><text x="190" y="726">Şarj aleti, lastik, fren</text>
 <circle cx="160" cy="790" r="9" fill="#C8F53C"/><text x="190" y="806">Ücretsiz arıza tespiti</text>
 </g>
 <text x="146" y="940" font-family="Inter" font-weight="700" font-size="44" fill="#C8F53C">Metrocity AVM · Beşiktaş</text>
