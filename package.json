@@ -1,7 +1,7 @@
 {
   "name": "scootechnology",
   "private": true,
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": ["packages/*", "apps/*", "scripts"],
   "scripts": {
     "test": "npm run test --workspaces --if-present"
   }
