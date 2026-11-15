@@ -41,11 +41,12 @@ if as $A_U "insert into jobs(workshop_id,status,raw_text) values ('$B_WS','yeni'
   fail "A, B adına iş ekleyememeli"; fi
 [ "$(as $A_U 'select name from brand_groups order by sort limit 1')" = "Ducati" ] || fail "İlk grup Ducati olmalı"
 [ "$(as $A_U 'select name from brands order by sort limit 1')" = "Ducati" ] || fail "İlk marka Ducati olmalı"
-[ "$(as $A_U 'select count(*) from error_codes')" = "1" ] || fail "Ortak hata kodu A'ya görünmeli"
-[ "$(as $B_U 'select count(*) from error_codes')" = "1" ] || fail "Ortak hata kodu B'ye görünmeli"
+[ "$(as $A_U "select count(*) from error_codes where meaning='test'")" = "1" ] || fail "Ortak hata kodu A'ya görünmeli"
+[ "$(as $B_U "select count(*) from error_codes where meaning='test'")" = "1" ] || fail "Ortak hata kodu B'ye görünmeli"
 [ "$(as $A_U "select count(*) from price_items")" -ge "10" ] || fail "Örnek fiyatlar yüklenmeli"
 if as $A_U "insert into price_items(workshop_id,item_name,group_id,min_tl,max_tl,duration)
   select '$A_WS','x',id,500,100,'1 gün' from brand_groups limit 1" >/dev/null 2>&1; then
   fail "min_tl > max_tl reddedilmeli"; fi
 [ "$(q "select name from workshops where name='E-Scooter Tamir Merkezi'")" = "E-Scooter Tamir Merkezi" ] || fail "Varsayılan atölye yok"
+[ "$(as $A_U "select count(*) from error_codes where brand='Ducati' and code='E9'")" = "1" ] || fail "Ducati E09 kodu yüklenmeli"
 echo "RLS OK"

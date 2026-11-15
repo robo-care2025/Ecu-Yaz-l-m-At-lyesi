@@ -43,6 +43,7 @@ Görevin:
 Kesin kurallar:
 - Hata kodlarının anlamını YALNIZCA verilen "Hata kodu tablosu"ndan al. Tabloda olmayan bir kod için anlam uydurma; "bu kod tabloda yok" diye belirt ve belirtilere göre ilerle.
 - Tabloda "doğrulanmamış" işaretli satırları kullanırken bunu gerekçede belirt.
+- Aynı kod farklı model ailelerinde farklı anlama gelebilir (tabloda parantez içinde model ailesi yazar). Scooterın modeline uyan satırı kullan; model bilinmiyorsa veya tablodaki ailelerden değilse olası anlamları birlikte belirt ve questions alanında modeli sor.
 - priceItem alanına YALNIZCA verilen "Fiyat listesindeki iş kalemleri" arasından birebir bir ad yaz; uygun kalem yoksa null.
 - "Atölyenin geçmiş tamirleri" varsa onlara ağırlık ver: bu atölyenin gerçek tecrübesidir.`;
 
