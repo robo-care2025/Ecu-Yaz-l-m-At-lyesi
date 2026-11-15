@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1880 520" width="1880" height="520">
+<rect width="1880" height="520" fill="#FFFFFF"/>
+<g transform="translate(60 20) scale(0.92)">  <circle cx="142" cy="356" r="52" fill="none" stroke="#0B1E3A" stroke-width="24"/>
+  <circle cx="378" cy="356" r="52" fill="none" stroke="#0B1E3A" stroke-width="24"/>
+  <path d="M142 356 L190 316 H330" fill="none" stroke="#0B1E3A" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <polygon points="286,104 350,104 324,204 404,204 378,356 330,262 266,262" fill="#0B1E3A" stroke="#0B1E3A" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M258 104 H352" stroke="#0B1E3A" stroke-width="24" stroke-linecap="round"/>
+  <circle cx="378" cy="356" r="14" fill="#0B1E3A"/><circle cx="142" cy="356" r="14" fill="#0B1E3A"/></g>
+<text x="560" y="300" font-family="Inter" font-weight="900" font-size="190" letter-spacing="-6" fill="#0B1E3A">VOLT<tspan fill="#7FA800">&amp;</tspan>CLEAN</text>
+<text x="566" y="380" font-family="Inter" font-weight="600" font-size="46" letter-spacing="9" fill="#4A5B73">E-SCOOTER · ROBOT SÜPÜRGE TAMİR</text>
+</svg>
