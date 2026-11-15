@@ -1,6 +1,6 @@
 # Scooter Arıza Asistanı — Tasarım Dokümanı
 
-*Tarih: 2026-11-15 · Durum: Onay bekliyor · Çalışma adı: "Scooter Arıza Asistanı" (kesin ad sonra belirlenecek)*
+*Tarih: 2026-11-15 · Durum: Onay bekliyor · Çalışma adı: "Scootechnology" (kullanıcı önerisi; marka/alan adı kontrolü mağaza öncesi)*
 
 ## 1. Amaç ve neden
 
@@ -105,7 +105,7 @@ Yönetici **kodla yazılmış bir akış**tır: hangi ajanın ne zaman çalışa
 | # | Ajan | Girdi | Çıktı |
 |---|---|---|---|
 | 1 | **Toparlayıcı** | Serbest metin (yazı, ses dökümü, WhatsApp mesajı) + formda seçilenler | Yapılandırılmış iş: marka, model, hata kodu(ları), belirtiler, müşteri adı/telefonu (varsa), eksik bilgiler |
-| 2 | **Teşhis** | Yapılandırılmış iş + araçlar: *hata kodu tablosu sorgula*, *arşivde benzer vaka ara* | Olası arızalar (ihtimal yüzdesiyle, gerekçesiyle), ölçüm/kontrol sırası (beklenen değerlerle), ustaya sorulacak ek sorular, güvenlik uyarıları |
+| 2 | **Teşhis** | Yapılandırılmış iş + yönetici akışın çağrıdan önce bulup verdiği bağlam: ilgili hata kodu satırları, arşivden benzer vakalar, fiyat kalemi adları, ölçümler (araç döngüsü yok: daha öngörülebilir ve ucuz) | Olası arızalar (ihtimal yüzdesiyle, gerekçesiyle), ölçüm/kontrol sırası (beklenen değerlerle), ustaya sorulacak ek sorular, güvenlik uyarıları |
 | 3 | **Fiyat eşleştirici** | Teşhisteki iş kalemleri + fiyat tablosu | Eşleşen fiyat aralığı ve süre; eşleşme yoksa "fiyat yok" işareti. **Bu adım yapay zekâ değil, düz koddur** (uydurma fiyatı önlemek için). Kalemleri eşleştirmek için teşhis ajanı fiyat tablosundaki iş adlarından seçim yapar. |
 | 4 | **Cevap** | Teşhis + fiyat sonucu + atölye bilgileri | Müşteriye sade Türkçe mesaj (ön değerlendirme dili, fiyat/süre varsa dahil, yoksa "inceleme sonrası bildirilecek") |
 | 5 | **Arşivci** | İş sonunda ustanın kısa notu (yazı veya ses) + gerçek fiyat/süre | Yapılandırılmış tamir kaydı (gerçek arıza, yapılan işlem, değişen parça); fiyat tablosundan çok farklıysa güncelleme önerisi |
@@ -155,7 +155,7 @@ Her tabloda satır düzeyinde güvenlik olur: bir atölye sadece kendi verisini 
 - **Android uygulaması**: React Native + Expo (TypeScript). Aynı kod ileride iPhone'a da çıkar. Derleme ve APK için Expo EAS. Sesli giriş: cihazın Türkçe konuşma tanıma servisi (ek ücret yok). Paylaşım hedefi: Android "share intent".
 - **Web paneli ve sunucu**: Next.js (TypeScript), Vercel'de barındırılır. Ajan akışı Next.js sunucu tarafında çalışır; Claude API anahtarı sadece Vercel ortam değişkenindedir.
 - **Veritabanı ve giriş**: Supabase (Postgres, Auth, satır düzeyi güvenlik). Benzer vaka araması ilk sürümde marka/model + anahtar kelime ile; gerekirse sonra anlamsal aramaya geçilir.
-- **Yapay zekâ**: Claude API. Teşhis için güçlü bir model (Claude Sonnet sınıfı); toparlayıcı ve arşivci için hızlı ve ucuz bir model (Claude Haiku sınıfı). Ajan çıktıları yapılandırılmış JSON olarak alınır ve doğrulanır.
+- **Yapay zekâ**: Claude API, varsayılan model `claude-opus-5-5` (tüm ajanlar; `AGENT_MODEL` ortam değişkeniyle değiştirilebilir). Teşhis yüksek, diğer ajanlar düşük düşünme seviyesinde çalışır. Daha ucuz bir modele geçmek kullanıcının kararıdır. Ajan çıktıları yapılandırılmış JSON olarak alınır ve doğrulanır; reddedilen isteklerde sunucu tarafı yedek model devreye girer.
 - **WhatsApp'ta aç**: `https://wa.me/<numara>?text=<mesaj>` bağlantısı. Numara yoksa sadece kopyalama.
 
 ### 8.7 Hata durumları
@@ -182,7 +182,7 @@ Her tabloda satır düzeyinde güvenlik olur: bir atölye sadece kendi verisini 
 3. İlk sürümde **tek kullanıcı**, ama yapı çırak/çalışan eklemeye hazır.
 4. Müşteriden sadece **ad ve telefon** saklanır (KVKK açısından ölçülü).
 5. Mesaj dili varsayılan olarak "siz" hitabıyla; panelden değiştirilebilir.
-6. Çalışma adı "Scooter Arıza Asistanı". Kesin ad ve alan adı kullanıcıdan gelecek.
+6. Uygulama adı: kullanıcının önerisiyle "Scootechnology". Marka ve alan adı kontrolü mağaza yayınından önce yapılacak.
 
 ## 11. Kullanıcının cevapladığı konular
 
