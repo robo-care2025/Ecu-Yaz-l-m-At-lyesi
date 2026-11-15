@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1004 650" width="1004" height="650">
+<rect width="1004" height="650" fill="#fff"/>
+<rect width="22" height="650" fill="#C8F53C"/>
+<text x="80" y="120" font-family="Inter" font-weight="900" font-size="54" letter-spacing="-1.5" fill="#0B1E3A"><tspan fill="#7FA800">E-</tspan>SCOOTER <tspan font-weight="600" fill="#4A5B73">TAMİR MERKEZİ</tspan></text>
+<text x="80" y="176" font-family="Inter" font-weight="500" font-size="28" fill="#4A5B73">E-scooter · Robot süpürge · Batarya · Kontrol kartı</text>
+<line x1="80" y1="220" x2="924" y2="220" stroke="#DDE3EA" stroke-width="3"/>
+<g fill="#0B1E3A" font-family="Inter" font-weight="600" font-size="38">
+<rect x="80" y="262" width="52" height="52" rx="12" fill="#0B1E3A"/><g transform="translate(106 290)"><rect x="-8" y="-15" width="16" height="28" rx="3" fill="none" stroke="#C8F53C" stroke-width="3.5"/><circle cy="8" r="2" fill="#C8F53C"/></g><text x="156" y="302">0 5XX XXX XX XX</text>
+<rect x="80" y="352" width="52" height="52" rx="12" fill="#0B1E3A"/><g transform="translate(106 382)"><path d="M0 -14 a10 10 0 0 1 10 10 c0 8 -10 18 -10 18 s-10 -10 -10 -18 a10 10 0 0 1 10 -10z" fill="#C8F53C"/><circle cy="-4" r="4" fill="#0B1E3A"/></g><text x="156" y="392">Metrocity AVM, Beşiktaş / İstanbul</text>
+<rect x="80" y="442" width="52" height="52" rx="12" fill="#0B1E3A"/><g transform="translate(106 470)"><rect x="-12" y="-13" width="24" height="24" rx="7" fill="none" stroke="#C8F53C" stroke-width="3.5"/><circle cy="-1" r="5.5" fill="none" stroke="#C8F53C" stroke-width="3.5"/></g><text x="156" y="482">@kullaniciadi</text>
+</g>
+<text x="80" y="580" font-family="Inter" font-weight="700" font-size="28" letter-spacing="4" fill="#7FA800">ÜCRETSİZ ARIZA TESPİTİ</text>
+</svg>

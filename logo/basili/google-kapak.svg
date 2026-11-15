@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+<defs><radialGradient id="g" cx="0.78" cy="0.5" r="0.55"><stop offset="0" stop-color="#16325A"/><stop offset="1" stop-color="#0B1E3A"/></radialGradient></defs>
+<rect width="1920" height="1080" fill="url(#g)"/>
+<g transform="translate(1090 200) scale(1.35)" opacity="1"><circle cx="142" cy="356" r="52" fill="none" stroke="#C8F53C" stroke-width="24"/><circle cx="378" cy="356" r="52" fill="none" stroke="#C8F53C" stroke-width="24"/>
+<path d="M142 356 L190 316 H330" fill="none" stroke="#C8F53C" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="286,104 350,104 324,204 404,204 378,356 330,262 266,262" fill="#C8F53C" stroke="#C8F53C" stroke-width="8" stroke-linejoin="round"/>
+<path d="M258 104 H352" stroke="#C8F53C" stroke-width="24" stroke-linecap="round"/><circle cx="378" cy="356" r="14" fill="#C8F53C"/><circle cx="142" cy="356" r="14" fill="#C8F53C"/></g>
+<text x="140" y="420" font-family="Inter" font-weight="900" font-size="150" letter-spacing="-5" fill="#fff"><tspan fill="#C8F53C">E-</tspan>SCOOTER</text>
+<text x="146" y="510" font-family="Inter" font-weight="700" font-size="64" letter-spacing="24" fill="#8FA3BF">TAMİR MERKEZİ</text>
+<g font-family="Inter" font-weight="600" font-size="46" fill="#fff">
+<circle cx="160" cy="630" r="9" fill="#C8F53C"/><text x="190" y="646">Batarya, motor, kontrol kartı</text>
+<circle cx="160" cy="710" r="9" fill="#C8F53C"/><text x="190" y="726">Robot süpürge tamiri</text>
+<circle cx="160" cy="790" r="9" fill="#C8F53C"/><text x="190" y="806">Ücretsiz arıza tespiti</text>
+</g>
+<text x="146" y="940" font-family="Inter" font-weight="700" font-size="44" fill="#C8F53C">Metrocity AVM · Beşiktaş</text>
+</svg>

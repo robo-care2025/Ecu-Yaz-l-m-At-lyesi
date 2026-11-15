@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" width="1200" height="1200">
+<rect width="1200" height="1200" rx="60" fill="#0B1E3A"/>
+<rect x="30" y="30" width="1140" height="1140" rx="40" fill="none" stroke="#C8F53C" stroke-width="6"/>
+<g transform="translate(375 90) scale(0.86)"><circle cx="142" cy="356" r="52" fill="none" stroke="#C8F53C" stroke-width="24"/><circle cx="378" cy="356" r="52" fill="none" stroke="#C8F53C" stroke-width="24"/>
+<path d="M142 356 L190 316 H330" fill="none" stroke="#C8F53C" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="286,104 350,104 324,204 404,204 378,356 330,262 266,262" fill="#C8F53C" stroke="#C8F53C" stroke-width="8" stroke-linejoin="round"/>
+<path d="M258 104 H352" stroke="#C8F53C" stroke-width="24" stroke-linecap="round"/><circle cx="378" cy="356" r="14" fill="#C8F53C"/><circle cx="142" cy="356" r="14" fill="#C8F53C"/></g>
+<text x="600" y="610" font-family="Inter" font-weight="900" font-size="150" letter-spacing="-5" text-anchor="middle" fill="#fff"><tspan fill="#C8F53C">E-</tspan>SCOOTER</text>
+<text x="600" y="700" font-family="Inter" font-weight="700" font-size="60" letter-spacing="26" text-anchor="middle" fill="#8FA3BF">TAMİR MERKEZİ</text>
+<g font-family="Inter" font-weight="600" font-size="44" fill="#fff" text-anchor="middle">
+<text x="600" y="830">Batarya · Motor · Kontrol Kartı</text>
+<text x="600" y="900">Şarj Aleti · Lastik · Robot Süpürge</text>
+</g>
+<rect x="260" y="975" width="680" height="110" rx="55" fill="#C8F53C"/>
+<text x="600" y="1046" font-family="Inter" font-weight="800" font-size="46" letter-spacing="2" text-anchor="middle" fill="#0B1E3A">ÜCRETSİZ ARIZA TESPİTİ</text>
+</svg>

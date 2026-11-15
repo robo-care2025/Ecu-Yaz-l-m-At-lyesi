@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1004 650" width="1004" height="650">
+<rect width="1004" height="650" fill="#0B1E3A"/>
+<g transform="translate(345 70) scale(0.62)"><circle cx="142" cy="356" r="52" fill="none" stroke="#C8F53C" stroke-width="24"/><circle cx="378" cy="356" r="52" fill="none" stroke="#C8F53C" stroke-width="24"/>
+<path d="M142 356 L190 316 H330" fill="none" stroke="#C8F53C" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="286,104 350,104 324,204 404,204 378,356 330,262 266,262" fill="#C8F53C" stroke="#C8F53C" stroke-width="8" stroke-linejoin="round"/>
+<path d="M258 104 H352" stroke="#C8F53C" stroke-width="24" stroke-linecap="round"/><circle cx="378" cy="356" r="14" fill="#C8F53C"/><circle cx="142" cy="356" r="14" fill="#C8F53C"/></g>
+<text x="502" y="450" font-family="Inter" font-weight="900" font-size="92" letter-spacing="-3" text-anchor="middle" fill="#fff"><tspan fill="#C8F53C">E-</tspan>SCOOTER</text>
+<text x="502" y="512" font-family="Inter" font-weight="700" font-size="36" letter-spacing="17" text-anchor="middle" fill="#8FA3BF">TAMİR MERKEZİ</text>
+<rect x="0" y="626" width="1004" height="24" fill="#C8F53C"/>
+</svg>
