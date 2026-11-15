@@ -184,7 +184,7 @@ Her tabloda satır düzeyinde güvenlik olur: bir atölye sadece kendi verisini 
 5. Mesaj dili varsayılan olarak "siz" hitabıyla; panelden değiştirilebilir.
 6. Çalışma adı "Scooter Arıza Asistanı". Kesin ad ve alan adı kullanıcıdan gelecek.
 
-## 11. Kullanıcıya sorulan açık konular
+## 11. Kullanıcının cevapladığı konular
 
-- Müşteri mesajının altında hangi **atölye adı** ve iletişim bilgisi yer alacak? (Depodaki web sitesi "ECU Yazılım Atölyesi" adını kullanıyor; scooter atölyesi aynı işletme mi?)
-- Uygulamanın kesin adı (mağaza ve alan adı için). Android'de kişisel kullanım aşamasında çalışma adı yeterli.
+- **Atölye adı (mesaj imzası)**: "E-Scooter Tamir Merkezi". Telefon: **0535 647 11 11**. Başlangıç değeri olarak atölye ayarlarına girilir, panelden değiştirilebilir (ad henüz kesin değil).
+- **Uygulamanın kesin adı**: henüz belirlenmedi. Kişisel kullanım aşamasında çalışma adı kullanılır. Mağaza yayınından önce kesinleşir.
