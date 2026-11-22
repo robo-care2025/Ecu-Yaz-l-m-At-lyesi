@@ -2,8 +2,7 @@
  * odometer.ts — TRIP (bu sürüşte gidilen mesafe).
  *
  * Toplam km scooter'dan okunur (telemetry.ts, odoKm). TRIP ise scooter'da
- * yok; batarya testiyle aynı yöntemle (distance.ts) hızın zamana göre
- * integralinden hesaplanır.
+ * yok; hızın zamana göre integralinden hesaplanır (distance.ts).
  */
 import { useCallback, useRef, useState } from 'react';
 import { stepKm } from './distance';

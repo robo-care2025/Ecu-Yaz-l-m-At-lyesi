@@ -1,5 +1,5 @@
 /**
- * distance.ts — Hızdan mesafe hesabı (batarya testi ve km sayacı ortak kullanır).
+ * distance.ts — Hızdan mesafe hesabı (TRIP sayacı kullanır).
  *
  * Scooter mesafe göndermez; mesafe, telemetrideki hızın zamana göre
  * integrali ile bulunur (yamuk kuralı).
