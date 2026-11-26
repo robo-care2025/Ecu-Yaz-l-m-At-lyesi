@@ -3,23 +3,14 @@
  * Hız kadranı, mod (hız limiti), Zero Start, kilit/far/cruise, canlı telemetri.
  */
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
-  StatusBar,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert, StatusBar, Share } from 'react-native';
 import { ble } from '../ble/bleManager';
 import { parseTelemetry, modeLabel, faultName, Telemetry } from '../ble/telemetry';
 import { buildState, hexToBytes, validateCommand } from '../ble/protocol';
 import { MODES, ModeId, ADVANCED_PIN } from '../config';
 import { Gauge } from '../components/Gauge';
 import { useTripMeter } from '../odometer';
+import { useFrameLog } from '../ble/frameLog';
 
 const MODE_IDS: ModeId[] = [1, 2, 3];
 const RED = '#E2001A';
@@ -47,6 +38,7 @@ export default function DashboardScreen() {
   const [pin, setPin] = useState('');
   const foundRef = useRef(false);
   const odo = useTripMeter();
+  const frames = useFrameLog();
 
   useEffect(() => () => void ble.disconnect(), []);
 
@@ -71,6 +63,7 @@ export default function DashboardScreen() {
         try {
           await ble.connect(device.id);
           ble.startTelemetry((bytes) => {
+            frames.feed(bytes);
             const t = parseTelemetry(bytes);
             setTele(t);
             odo.feed(t.speedKmh ?? 0);
@@ -337,6 +330,27 @@ export default function DashboardScreen() {
             </TouchableOpacity>
             {tele?.raw ? <Text style={styles.rawLine}>{tele.raw}{tele.stateChecksumOk ? '  ck✓' : ''}</Text> : null}
             <View style={{ height: 8 }} />
+            <View style={styles.frameHead}>
+              <Text style={styles.infoLabel}>HAM ÇERÇEVE TİPLERİ ({frames.kinds.length})</Text>
+              <View style={{ flexDirection: 'row', gap: 14 }}>
+                <TouchableOpacity onPress={() => Share.share({ message: frames.asText() })}>
+                  <Text style={styles.frameAct}>Paylaş</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={frames.reset}>
+                  <Text style={styles.frameAct}>Temizle</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            {frames.kinds.length === 0 ? (
+              <Text style={styles.frameEmpty}>Bağlan ve birkaç saniye bekle…</Text>
+            ) : (
+              frames.kinds.map((k) => (
+                <Text key={k.key} style={styles.frameLine}>
+                  {k.key} · {k.len}B · {k.count}×  {k.lastHex}
+                </Text>
+              ))
+            )}
+            <View style={{ height: 8 }} />
             {log.map((l, i) => (
               <Text key={i} style={styles.logLine}>{l}</Text>
             ))}
@@ -446,6 +460,10 @@ const styles = StyleSheet.create({
   input: { backgroundColor: CARD, borderWidth: 1, borderColor: BORDER, borderRadius: 12, padding: 13, color: '#fff', fontFamily: 'monospace', fontSize: 14, marginTop: 6 },
   sendBtn: { backgroundColor: '#1F1F23', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 8 },
   sendTxt: { color: '#fff', fontWeight: '800', fontSize: 13, letterSpacing: 1 },
+  frameHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, marginBottom: 6 },
+  frameAct: { color: '#4FA3FF', fontSize: 12, fontWeight: '800' },
+  frameEmpty: { color: MUTED, fontSize: 11 },
+  frameLine: { color: '#B0B0B5', fontSize: 10, fontFamily: 'monospace', marginTop: 3 },
   rawLine: { color: MUTED, fontSize: 10, marginTop: 10, fontFamily: 'monospace', textAlign: 'center' },
   logLine: { color: '#6E6E73', fontSize: 11, fontFamily: 'monospace', paddingVertical: 1 },
   footer: { color: '#55555A', fontSize: 11, marginTop: 22, textAlign: 'center', lineHeight: 16 },
