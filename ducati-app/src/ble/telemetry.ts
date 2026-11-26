@@ -22,7 +22,10 @@
  * TOPLAM KM: (idx4 + idx5*256) / 10. Orijinal uygulama scooter'dan yalnızca bu
  *      çerçeveyi alıyor; günler arasında artan tek açıklanmamış bayt idx4
  *      (13.10: 5, 13.10 akşam: 17, 14.10: 36; şarjda sıfırlanmıyor).
- *      Birim 0,1 km: sürüşte her 100 m'de 1 artıyor (scooter başında görüldü).
+ *      Birim 0,1 km: sürüşte her 100 m'de 1 artıyor. Scooter ekranıyla doğrulandı:
+ *      12 0c -> 0x0c12 = 3090 -> 309.0 km.
+ * ARIZA: idx10 = scooter ekranındaki E kodu (0 = arıza yok). Sağlam 3534 pakette
+ *      hep 0; scooter E1 (motor) gösterirken 01 okundu.
  * BATARYA: idx8 = yüzde (tüm kaptürlerde 0x64=100, şarjda). Düşük şarjda doğrula.
  */
 
@@ -67,6 +70,15 @@ export function formatRideTime(sec: number | null): string {
 }
 
 const MODE_LABEL: Record<number, string> = { 1: 'ECO', 2: 'COMFORT', 3: 'SPORT' };
+
+/** Scooter ekranında anlamı görülmüş E kodları. */
+const FAULT_LABEL: Record<number, string> = { 1: 'motor' };
+
+/** Arıza kodu -> "E1 · motor" (anlamı bilinmiyorsa yalnızca "E7"). */
+export function faultLabel(code: number): string {
+  const name = FAULT_LABEL[code];
+  return name ? `E${code} · ${name}` : `E${code}`;
+}
 
 export function modeLabel(mode: number | null): string {
   if (mode == null) return '--';
@@ -117,11 +129,8 @@ export function parseTelemetry(bytes: Uint8Array): Telemetry {
     rideSeconds,
     rideTime: formatRideTime(rideSeconds),
     odoKm: (bytes[4] | (bytes[5] << 8)) / ODO_SCALE,
-    // Arıza tespiti: doğrulanmış kod eşlemesi yok. Önceki sezgisel
-    // (bytes[5]||[7]||[10]) sağlam scooter'da yanlış "Arıza 0x3d" veriyordu.
-    // Gerçek arıza durumu yakalanıp kodu doğrulanana kadar devre dışı.
-    fault: false,
-    faultCode: 0,
+    fault: bytes[10] !== 0,
+    faultCode: bytes[10],
     raw: hex(bytes),
   };
 }

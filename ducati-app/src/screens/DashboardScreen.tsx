@@ -15,7 +15,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { ble } from '../ble/bleManager';
-import { parseTelemetry, modeLabel, Telemetry } from '../ble/telemetry';
+import { parseTelemetry, modeLabel, faultLabel, Telemetry } from '../ble/telemetry';
 import { buildState, hexToBytes, validateCommand } from '../ble/protocol';
 import { MODES, ModeId, ADVANCED_PIN } from '../config';
 import { Gauge } from '../components/Gauge';
@@ -218,7 +218,7 @@ export default function DashboardScreen() {
           <View style={styles.infoCard}>
             <Text style={styles.infoLabel}>DURUM</Text>
             <Text style={[styles.infoHealth, { color: tele?.fault ? RED : '#27C26E' }]}>
-              {tele == null ? '—' : tele.fault ? `⚠ Arıza 0x${tele.faultCode.toString(16)}` : '✓ Sorun yok'}
+              {tele == null ? '—' : tele.fault ? `⚠ Arıza ${faultLabel(tele.faultCode)}` : '✓ Sorun yok'}
             </Text>
           </View>
         </View>
