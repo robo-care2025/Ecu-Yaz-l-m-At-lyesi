@@ -1,0 +1,4 @@
+# Ducati PRO-I EVO BLE toolkit bağımlılıkları
+# Python 3.9+ önerilir
+bleak>=0.22.0        # Cross-platform BLE (Windows/macOS/Linux)
+rich>=13.0.0         # Renkli/okunur terminal çıktısı
