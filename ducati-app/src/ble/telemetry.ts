@@ -71,13 +71,21 @@ export function formatRideTime(sec: number | null): string {
 
 const MODE_LABEL: Record<number, string> = { 1: 'ECO', 2: 'COMFORT', 3: 'SPORT' };
 
-/** Scooter ekranında anlamı görülmüş E kodları. */
-const FAULT_LABEL: Record<number, string> = { 1: 'motor' };
+/** Ducati PRO-I EVO E kodları (kullanıcı listesi; E1 scooter'da idx10=01 ile doğrulandı). */
+const FAULT_NAME: Record<number, string> = {
+  1: 'Motor arızası',
+  2: 'Kontrol ünitesi sinyal hatası',
+  3: 'Gaz kolu arızası',
+  4: 'Kontrol ünitesi MOS arızası',
+  5: 'Faz / akım hatası',
+  6: 'Ortalama akım hatası',
+  7: 'Batarya voltaj hatası',
+  8: 'Fren kolu arızası',
+};
 
-/** Arıza kodu -> "E1 · motor" (anlamı bilinmiyorsa yalnızca "E7"). */
-export function faultLabel(code: number): string {
-  const name = FAULT_LABEL[code];
-  return name ? `E${code} · ${name}` : `E${code}`;
+/** Arıza kodunun anlamı; listede yoksa "Bilinmeyen kod". */
+export function faultName(code: number): string {
+  return FAULT_NAME[code] ?? 'Bilinmeyen kod';
 }
 
 export function modeLabel(mode: number | null): string {

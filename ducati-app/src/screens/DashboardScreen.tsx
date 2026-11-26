@@ -15,7 +15,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { ble } from '../ble/bleManager';
-import { parseTelemetry, modeLabel, faultLabel, Telemetry } from '../ble/telemetry';
+import { parseTelemetry, modeLabel, faultName, Telemetry } from '../ble/telemetry';
 import { buildState, hexToBytes, validateCommand } from '../ble/protocol';
 import { MODES, ModeId, ADVANCED_PIN } from '../config';
 import { Gauge } from '../components/Gauge';
@@ -218,8 +218,9 @@ export default function DashboardScreen() {
           <View style={styles.infoCard}>
             <Text style={styles.infoLabel}>DURUM</Text>
             <Text style={[styles.infoHealth, { color: tele?.fault ? RED : '#27C26E' }]}>
-              {tele == null ? '—' : tele.fault ? `⚠ Arıza ${faultLabel(tele.faultCode)}` : '✓ Sorun yok'}
+              {tele == null ? '—' : tele.fault ? `⚠ Arıza E${tele.faultCode}` : '✓ Sorun yok'}
             </Text>
+            {tele?.fault ? <Text style={styles.faultName}>{faultName(tele.faultCode)}</Text> : null}
           </View>
         </View>
 
@@ -416,6 +417,7 @@ const styles = StyleSheet.create({
   infoValue: { color: '#fff', fontSize: 20, fontWeight: '900', marginTop: 4 },
   infoUnit: { color: MUTED, fontSize: 11, fontWeight: '600' },
   infoHealth: { fontSize: 14, fontWeight: '800', marginTop: 7 },
+  faultName: { color: '#FF8A8A', fontSize: 11, fontWeight: '700', marginTop: 3 },
   infoHint: { color: '#55555B', fontSize: 9, fontWeight: '600', marginTop: 3 },
   connectBtn: { backgroundColor: RED, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 14 },
   connectTxt: { color: '#fff', fontWeight: '900', fontSize: 16, letterSpacing: 1 },
